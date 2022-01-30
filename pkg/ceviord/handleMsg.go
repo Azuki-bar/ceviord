@@ -147,7 +147,7 @@ func GetMsg(m *discordgo.MessageCreate) string {
 	}
 	msg := []rune(name + m.Content)
 	if len(msg) > strLenMax {
-		return string(msg[0:150])
+		return string(msg[0:strLenMax])
 	} else {
 		return string(msg)
 	}
