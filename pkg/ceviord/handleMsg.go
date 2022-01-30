@@ -166,7 +166,7 @@ func ReplaceMsg(msg string) string {
 	newDict.after = "ゆーあーるえる。"
 	dicts = append(dicts, newDict)
 
-	newDict.before = regexp.MustCompile("```.*```")
+	newDict.before = regexp.MustCompile("(?s).*```(.*)```")
 	newDict.after = "コードブロック"
 	dicts = append(dicts, newDict)
 
