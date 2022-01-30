@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -96,6 +97,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	ceviord.mutex.Lock()
 	fPath, err := RandFileNameGen(m)
 	if err != nil {
 		log.Println(fmt.Errorf("%w", err))
@@ -113,7 +115,6 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Println(fmt.Errorf("%w", err))
 		return
 	}
-	ceviord.mutex.Lock()
 	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
 	ceviord.mutex.Unlock()
 
@@ -141,14 +142,40 @@ func RandFileNameGen(m *discordgo.MessageCreate) (string, error) {
 func GetMsg(m *discordgo.MessageCreate) string {
 	var name string
 	if m.Member.Nick == "" {
-		name = m.Member.User.Username
+		name = m.Author.Username
 	} else {
 		name = m.Member.Nick
 	}
-	msg := []rune(name + m.Content)
+	msg := []rune(name + "。" + m.Content)
+	msg = []rune(ReplaceMsg(string(msg)))
 	if len(msg) > strLenMax {
 		return string(msg[0:strLenMax])
 	} else {
 		return string(msg)
 	}
+}
+
+func ReplaceMsg(msg string) string {
+	type dict struct {
+		before *regexp.Regexp
+		after  string
+	}
+	var dicts []dict
+	var newDict dict
+	newDict.before = regexp.MustCompile(`https?://[\w!?/+\-_~;.,*&@#$%()'[\]]+`)
+	newDict.after = "ゆーあーるえる。"
+	dicts = append(dicts, newDict)
+
+	newDict.before = regexp.MustCompile("```.*```")
+	newDict.after = "コードブロック"
+	dicts = append(dicts, newDict)
+
+	newDict.before = regexp.MustCompile("\n")
+	newDict.after = " "
+	dicts = append(dicts, newDict)
+
+	for _, d := range dicts {
+		msg = d.before.ReplaceAllString(msg, d.after)
+	}
+	return msg
 }

@@ -13,7 +13,7 @@ type cevioWav struct {
 func NewTalker() *cevioWav {
 	c := cevioWav{isSucceed: make(chan error, 0)}
 	c.talker = cevioai.NewITalker2V40(cevioai.CevioAiApiName)
-	_, err := c.talker.SetCast("さとうさらら")
+	_, err := c.talker.SetCast("さとうささら")
 	if err != nil {
 		log.Fatalln(err)
 	}
