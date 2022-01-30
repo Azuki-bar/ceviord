@@ -27,13 +27,16 @@ var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 var ceviord = Ceviord{
 	isJoin:        false,
 	pickedChannel: "",
-	cevioWav:      NewTalker(),
+}
+
+func SetNewTalker(wav *cevioWav) {
+	ceviord.cevioWav = wav
 }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
 	if err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("%w", err))
 		return nil
 	}
 	vcs, err := s.State.VoiceState(m.GuildID, m.Author.ID)
@@ -61,6 +64,10 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	vcs, err := s.State.VoiceState(m.GuildID, s.State.User.ID)
+	if err != nil {
+		log.Println(fmt.Errorf("%w", err))
+	}
+
 	isJoined := false
 	if err != nil {
 		log.Println(fmt.Errorf("%w", err))

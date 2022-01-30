@@ -32,6 +32,7 @@ func main() {
 	ap.Description = "read text with cevigo"
 	ap, err = dg.ApplicationCreate(ap)
 	dg.AddHandler(ceviord.MessageCreate)
+	ceviord.SetNewTalker(ceviord.NewTalker())
 
 	// Open the websocket and begin listening.
 	err = dg.Open()
