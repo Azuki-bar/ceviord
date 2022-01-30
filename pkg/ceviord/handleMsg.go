@@ -3,6 +3,7 @@ package ceviord
 import (
 	"crypto"
 	"encoding/hex"
+	"fmt"
 	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -61,7 +62,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	vcs, err := s.State.VoiceState(m.GuildID, s.State.User.ID)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(fmt.Errorf("%w", err))
 	}
 
 	isJoined := false
@@ -71,7 +72,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.TrimPrefix(m.Content, prefix) == "sasara" && !isJoined {
 		ceviord.VoiceConn, err = s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
 		if err != nil {
-			log.Println(err)
+			log.Println(fmt.Errorf("%w", err))
 		}
 		ceviord.pickedChannel = m.ChannelID
 	}
@@ -86,18 +87,18 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	fPath, err := RandFileNameGen(m)
 	if err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("%w", err))
 		return
 	}
 	fPath = filepath.Join(tmpDir, fPath)
 	err = os.MkdirAll(filepath.Dir(fPath), os.FileMode(0755))
 	if err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("%w", err))
 		return
 	}
 	err = ceviord.cevioWav.OutputWaveToFile(GetMsg(m), fPath)
 	if err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("%w", err))
 		return
 	}
 	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
