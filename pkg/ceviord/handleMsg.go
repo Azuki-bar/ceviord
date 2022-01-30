@@ -108,6 +108,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	err = ceviord.cevioWav.OutputWaveToFile(GetMsg(m), fPath)
+	defer os.Remove(fPath)
 	if err != nil {
 		log.Println(fmt.Errorf("%w", err))
 		return
