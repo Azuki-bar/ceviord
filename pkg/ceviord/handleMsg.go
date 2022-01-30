@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type Ceviord struct {
@@ -17,6 +18,7 @@ type Ceviord struct {
 	VoiceConn     *discordgo.VoiceConnection
 	pickedChannel string
 	cevioWav      *cevioWav
+	mutex         sync.Mutex
 }
 
 const prefix = "!"
@@ -27,6 +29,7 @@ var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 var ceviord = Ceviord{
 	isJoin:        false,
 	pickedChannel: "",
+	mutex:         sync.Mutex{},
 }
 
 func SetNewTalker(wav *cevioWav) {
@@ -109,7 +112,9 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Println(fmt.Errorf("%w", err))
 		return
 	}
+	ceviord.mutex.Lock()
 	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
+	ceviord.mutex.Unlock()
 
 	//if vcs.ChannelID == "" {
 	//	s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
@@ -133,7 +138,13 @@ func RandFileNameGen(m *discordgo.MessageCreate) (string, error) {
 }
 
 func GetMsg(m *discordgo.MessageCreate) string {
-	msg := []rune(m.Member.Nick + m.Content)
+	var name string
+	if m.Member.Nick == "" {
+		name = m.Member.User.Username
+	} else {
+		name = m.Member.Nick
+	}
+	msg := []rune(name + m.Content)
 	if len(msg) > strLenMax {
 		return string(msg[0:150])
 	} else {
