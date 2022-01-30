@@ -14,12 +14,13 @@ import (
 func main() {
 
 	token := flag.String("t", "", "discord token")
+	flag.Parse()
 	if *token == "" {
 		return
 	}
 
 	// Create a new Discordgo session
-	dg, err := discordgo.New(token)
+	dg, err := discordgo.New("Bot " + *token)
 	if err != nil {
 		log.Println(err)
 		return
