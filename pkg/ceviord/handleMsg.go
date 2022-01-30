@@ -146,8 +146,8 @@ func GetMsg(m *discordgo.MessageCreate) string {
 	} else {
 		name = m.Member.Nick
 	}
-	msg := []rune(name + "。" + m.Content)
-	msg = []rune(ReplaceMsg(string(msg)))
+	msg := []rune(m.Content)
+	msg = []rune(name + "。" + ReplaceMsg(string(msg)))
 	if len(msg) > strLenMax {
 		return string(msg[0:strLenMax])
 	} else {
@@ -162,11 +162,11 @@ func ReplaceMsg(msg string) string {
 	}
 	var dicts []dict
 	var newDict dict
-	newDict.before = regexp.MustCompile(`https?://[\w!?/+\-_~;.,*&@#$%()'[\]]+`)
+	newDict.before = regexp.MustCompile(`https?://.*`)
 	newDict.after = "ゆーあーるえる。"
 	dicts = append(dicts, newDict)
 
-	newDict.before = regexp.MustCompile("(?s).*```(.*)```")
+	newDict.before = regexp.MustCompile("(?s)```(.*)```")
 	newDict.after = "コードブロック"
 	dicts = append(dicts, newDict)
 
