@@ -84,7 +84,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	fPath, err := RandFilePathGen(m)
+	fPath, err := RandFileNameGen(m)
 	if err != nil {
 		log.Println(err)
 		return
@@ -112,7 +112,7 @@ func VoiceStateUpdate(session *discordgo.Session, update discordgo.VoiceStateUpd
 
 }
 
-func RandFilePathGen(m *discordgo.MessageCreate) (string, error) {
+func RandFileNameGen(m *discordgo.MessageCreate) (string, error) {
 	hash := crypto.MD5.New()
 	defer hash.Reset()
 	t, err := m.Timestamp.Parse()
@@ -124,5 +124,5 @@ func RandFilePathGen(m *discordgo.MessageCreate) (string, error) {
 }
 
 func GetMsg(m *discordgo.MessageCreate) string {
-	return (m.Member.Nick + m.Content)[0:strLenMax]
+	return string([]rune(m.Member.Nick + m.Content)[0:strLenMax])
 }
