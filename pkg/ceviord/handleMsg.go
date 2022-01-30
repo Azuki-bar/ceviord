@@ -9,7 +9,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 )
 
 type Ceviord struct {
@@ -17,6 +19,7 @@ type Ceviord struct {
 	VoiceConn     *discordgo.VoiceConnection
 	pickedChannel string
 	cevioWav      *cevioWav
+	mutex         sync.Mutex
 }
 
 const prefix = "!"
@@ -27,6 +30,7 @@ var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 var ceviord = Ceviord{
 	isJoin:        false,
 	pickedChannel: "",
+	mutex:         sync.Mutex{},
 }
 
 func SetNewTalker(wav *cevioWav) {
@@ -69,9 +73,14 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	isJoined := false
-	if vcs.ChannelID != "" {
+	if err != nil {
+		log.Println(fmt.Errorf("%w", err))
+		//todo; implement
+		isJoined = false
+	} else if vcs.ChannelID != "" {
 		isJoined = true
 	}
+
 	if strings.TrimPrefix(m.Content, prefix) == "sasara" && !isJoined {
 		ceviord.VoiceConn, err = s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
 		if err != nil {
@@ -88,6 +97,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	ceviord.mutex.Lock()
 	fPath, err := RandFileNameGen(m)
 	if err != nil {
 		log.Println(fmt.Errorf("%w", err))
@@ -100,11 +110,13 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	err = ceviord.cevioWav.OutputWaveToFile(GetMsg(m), fPath)
+	defer os.Remove(fPath)
 	if err != nil {
 		log.Println(fmt.Errorf("%w", err))
 		return
 	}
 	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
+	ceviord.mutex.Unlock()
 
 	//if vcs.ChannelID == "" {
 	//	s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
@@ -128,5 +140,42 @@ func RandFileNameGen(m *discordgo.MessageCreate) (string, error) {
 }
 
 func GetMsg(m *discordgo.MessageCreate) string {
-	return string([]rune(m.Member.Nick + m.Content)[0:strLenMax])
+	var name string
+	if m.Member.Nick == "" {
+		name = m.Author.Username
+	} else {
+		name = m.Member.Nick
+	}
+	msg := []rune(m.Content)
+	msg = []rune(name + "。" + ReplaceMsg(string(msg)))
+	if len(msg) > strLenMax {
+		return string(msg[0:strLenMax])
+	} else {
+		return string(msg)
+	}
+}
+
+func ReplaceMsg(msg string) string {
+	type dict struct {
+		before *regexp.Regexp
+		after  string
+	}
+	var dicts []dict
+	var newDict dict
+	newDict.before = regexp.MustCompile(`https?://.*`)
+	newDict.after = "ゆーあーるえる。"
+	dicts = append(dicts, newDict)
+
+	newDict.before = regexp.MustCompile("(?s)```(.*)```")
+	newDict.after = "コードブロック"
+	dicts = append(dicts, newDict)
+
+	newDict.before = regexp.MustCompile("\n")
+	newDict.after = " "
+	dicts = append(dicts, newDict)
+
+	for _, d := range dicts {
+		msg = d.before.ReplaceAllString(msg, d.after)
+	}
+	return msg
 }
