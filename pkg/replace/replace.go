@@ -10,8 +10,8 @@ import (
 
 type Dict struct {
 	gorm.Model
-	Before  string `gorm:"not null"`
-	After   string `gorm:"not null"`
+	Word    string `gorm:"not null"`
+	Yomi    string `gorm:"not null"`
 	AddUser string `gorm:"not null"`
 	GuildId string `gorm:"not null"`
 }
@@ -39,7 +39,7 @@ func (rs *Replacer) SetDb(db *gorm.DB) error {
 func (rs *Replacer) SetGuildId(guildId string) { rs.guildId = guildId }
 func (rs *Replacer) Add(dict *Dict) error {
 	findRes := Dict{}
-	result := rs.db.Where("before = ?", dict.Before).First(&findRes)
+	result := rs.db.Where(&Dict{Word: dict.Word}).First(&findRes)
 	isExist := errors.Is(result.Error, gorm.ErrRecordNotFound)
 	if isExist {
 		result = rs.db.Create(dict)
@@ -110,15 +110,15 @@ func (ds *dicts) replace(msg string) string {
 	for cur := 0; cur < len(rMsg); {
 		isReplaced := false
 		for _, record := range *ds {
-			befLen := len([]rune(record.Before))
+			befLen := len([]rune(record.Word))
 			if cur+befLen > len(rMsg) {
 				continue
 			}
-			if !strings.Contains(string(rMsg[cur:cur+befLen]), record.Before) {
+			if !strings.Contains(string(rMsg[cur:cur+befLen]), record.Word) {
 				continue
 			}
-			rMsg = append(rMsg[0:cur], []rune(strings.Replace(string(rMsg[cur:]), record.Before, record.After, 1))...)
-			cur += len([]rune(record.After))
+			rMsg = append(rMsg[0:cur], []rune(strings.Replace(string(rMsg[cur:]), record.Word, record.Yomi, 1))...)
+			cur += len([]rune(record.Yomi))
 			isReplaced = true
 			break
 		}
