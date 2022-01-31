@@ -182,7 +182,11 @@ func ReplaceMsg(msg string) string {
 	newDict.after = " "
 	dicts = append(dicts, newDict)
 
-	newDict.before = regexp.MustCompile("([~〜])")
+	newDict.before = regexp.MustCompile("~")
+	newDict.after = "ー"
+	dicts = append(dicts, newDict)
+
+	newDict.before = regexp.MustCompile("〜")
 	newDict.after = "ー"
 	dicts = append(dicts, newDict)
 
