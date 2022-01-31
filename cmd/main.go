@@ -46,6 +46,7 @@ func main() {
 		sqlDb, err := db.DB()
 		if err != nil {
 			log.Println(fmt.Errorf("%w", err))
+			return
 		}
 		err = sqlDb.Close()
 		if err != nil {
