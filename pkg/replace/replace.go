@@ -54,7 +54,7 @@ func (rs *Replacer) Delete(dictId uint) ([]Dict, error) {
 		return []Dict{}, result.Error
 	}
 	var deletedRecord []Dict
-	result = rs.db.Delete(&deletedRecord, dictId)
+	result = rs.db.Where(result).Delete(&deletedRecord, dictId)
 	return deletedRecord, result.Error
 }
 
