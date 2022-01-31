@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
-	"gorm.io/gorm"
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -35,15 +35,8 @@ var ceviord = Ceviord{
 	mutex:         sync.Mutex{},
 }
 
-func SetNewTalker(wav *cevioWav) {
-	ceviord.cevioWav = wav
-}
-func SetDb(db *gorm.DB) {
-	ceviord.replacer.SetDb(db)
-}
-func CloseDb() {
-	ceviord.replacer.CloseDb()
-}
+func SetNewTalker(wav *cevioWav)     { ceviord.cevioWav = wav }
+func SetReplacer(r replace.Replacer) { ceviord.replacer = r }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
@@ -109,7 +102,34 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if strings.HasPrefix(m.Content, prefix+"dict"+" ") {
+	// todo; なにかの関数に押し込む
+	dictCmd := "dict"
+	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), dictCmd+" ") {
+		var cmd []string
+		for _, c := range strings.Split(strings.TrimPrefix(m.Content, prefix), " ")[1:] {
+			if c != "" {
+				cmd = append(cmd, c)
+			}
+		}
+		if len(cmd) < 3 {
+
+		}
+		switch cmd[0] {
+		case "add":
+			err := ceviord.replacer.Add(&replace.Dict{Before: cmd[1], After: strings.Join(cmd[2:], ""),
+				AddUser: m.Author.ID, GuildId: m.GuildID})
+			if err != nil {
+			}
+		case "del":
+			id, err := strconv.Atoi(cmd[1])
+			if err != nil {
+			}
+			_, err = ceviord.replacer.Delete(uint(id))
+			if err != nil {
+
+			}
+		}
+
 	}
 
 	if !(isJoined && m.ChannelID == ceviord.pickedChannel) {

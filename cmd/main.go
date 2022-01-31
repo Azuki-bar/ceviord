@@ -2,6 +2,7 @@ package main
 
 import (
 	"ceviord/pkg/ceviord"
+	"ceviord/pkg/replace"
 	"flag"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
@@ -36,15 +37,35 @@ func main() {
 	dg.AddHandler(ceviord.MessageCreate)
 	ceviord.SetNewTalker(ceviord.NewTalker())
 
-	db, err := gorm.Open(sqlite.Open(filepath.Join("./", "db.sqlite3")))
+	db, err := gorm.Open(sqlite.Open(filepath.Join("./", "dictionaries.sqlite3")))
 	if err != nil {
-		ceviord.SetDb(db)
+		log.Println(fmt.Errorf("db connection failed `%w`", err))
+		return
 	}
-	defer ceviord.CloseDb()
+	defer func() {
+		sqlDb, err := db.DB()
+		if err != nil {
+			log.Println(fmt.Errorf("%w", err))
+		}
+		err = sqlDb.Close()
+		if err != nil {
+			log.Println(fmt.Errorf("%w", err))
+		}
+	}()
+	if err != nil {
+		return
+	}
+	r, err := replace.NewReplacer(db)
+	if err != nil {
+		log.Println(fmt.Errorf("db set failed `%w`", err))
+		return
+	}
+	ceviord.SetReplacer(*r)
+
 	// Open the websocket and begin listening.
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("Error opening Discord session: ", err)
+		log.Println(fmt.Errorf("error opening Discord session: `%w`", err))
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
