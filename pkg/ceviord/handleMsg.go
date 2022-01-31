@@ -21,7 +21,7 @@ type Ceviord struct {
 	pickedChannel string
 	cevioWav      *cevioWav
 	mutex         sync.Mutex
-	db            *gorm.DB
+	replacer      replace.Replacer
 }
 
 const prefix = "!"
@@ -39,18 +39,12 @@ func SetNewTalker(wav *cevioWav) {
 	ceviord.cevioWav = wav
 }
 func SetDb(db *gorm.DB) {
-	ceviord.db = db
+	ceviord.replacer.SetDb(db)
 }
 func CloseDb() {
-	db, err := ceviord.db.DB()
-	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
-	}
-	err = db.Close()
-	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
-	}
+	ceviord.replacer.CloseDb()
 }
+
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
 	if err != nil {
@@ -113,6 +107,9 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			log.Println(fmt.Errorf("%w", err))
 		}
 		return
+	}
+
+	if strings.HasPrefix(m.Content, prefix+"dict"+" ") {
 	}
 
 	if !(isJoined && m.ChannelID == ceviord.pickedChannel) {

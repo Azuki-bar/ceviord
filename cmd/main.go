@@ -40,6 +40,7 @@ func main() {
 	if err != nil {
 		ceviord.SetDb(db)
 	}
+	defer ceviord.CloseDb()
 	// Open the websocket and begin listening.
 	err = dg.Open()
 	if err != nil {
