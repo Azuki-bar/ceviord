@@ -24,3 +24,23 @@ func (c *cevioWav) OutputWaveToFile(talkWard string, path string) (err error) {
 	_, err = c.talker.OutputWaveToFile(talkWard, path)
 	return err
 }
+
+func (c *cevioWav) ApplyEmotions(param *Parameter) error {
+	c.talker.SetVolume(param.Volume)
+	c.talker.SetSpeed(param.Speed)
+	c.talker.SetTone(param.Tone)
+	c.talker.SetToneScale(param.Tonescale)
+	c.talker.SetAlpha(param.Alpha)
+	comp, err := c.talker.GetComponents()
+	if err != nil {
+		return err
+	}
+	for n, v := range param.Emotions {
+		com, err := comp.ByName(n)
+		if err != nil {
+			return err
+		}
+		com.SetValue(v)
+	}
+	return nil
+}

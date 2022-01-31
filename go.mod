@@ -6,6 +6,7 @@ require (
 	github.com/bwmarrin/dgvoice v0.0.0-20210225172318-caaac756e02e
 	github.com/bwmarrin/discordgo v0.23.2
 	github.com/gotti/cevigo v0.0.0-20220118105433-9fbf5258a5f9
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
