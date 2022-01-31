@@ -10,10 +10,10 @@ import (
 
 type Dict struct {
 	gorm.Model
-	Word    string `gorm:"not null"`
-	Yomi    string `gorm:"not null"`
-	AddUser string `gorm:"not null"`
-	GuildId string `gorm:"not null"`
+	Word          string `gorm:"not null"`
+	Yomi          string `gorm:"not null"`
+	ChangedUserId string `gorm:"not null"`
+	GuildId       string `gorm:"not null"`
 }
 type Replacer struct {
 	db      *gorm.DB
