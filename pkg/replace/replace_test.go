@@ -92,3 +92,67 @@ func TestRecords_Replace(t *testing.T) {
 		})
 	}
 }
+
+func TestApplySysDict(t *testing.T) {
+	type args struct {
+		msg string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "URL-http",
+			args: args{msg: "http://example.com"},
+			want: "ゆーあーるえる。",
+		},
+		{
+			name: "URL-https",
+			args: args{msg: "https://example.com"},
+			want: "ゆーあーるえる。",
+		},
+		{
+			name: "URL-ftps",
+			args: args{msg: "ftps://example.com"},
+			want: "ftps://example.com",
+		},
+		{
+			name: "name and https url",
+			args: args{msg: `recommend contents -> https://example.com`},
+			want: `recommend contents -> ゆーあーるえる。`,
+		},
+		{
+			name: "https url and content",
+			args: args{msg: `recommend contents
+https://example.com
+
+`},
+			want: `recommend contents ゆーあーるえる。  `,
+		},
+		{
+			name: "https url and content",
+			args: args{msg: `https://example.com <- recommend contents!`},
+			want: `ゆーあーるえる。`,
+		},
+		{
+			name: "https url and content",
+			args: args{msg: `https://example.com
+something contents.
+
+`},
+			want: `ゆーあーるえる。 something contents.  `,
+		},
+		{name: `ほげ\nふが`, args: args{msg: "ほげ\nふが"}, want: `ほげ ふが`},
+		{name: `ほげ\r\nふが`, args: args{msg: "ほげ\r\nふが"}, want: "ほげ\r ふが"},
+		{name: `半角チルダ`, args: args{msg: "あ~"}, want: "あー"},
+		{name: `全角チルダ`, args: args{msg: "あ〜"}, want: "あー"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ApplySysDict(tt.args.msg); got != tt.want {
+				t.Errorf("ApplySysDict() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

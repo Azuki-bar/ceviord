@@ -58,7 +58,7 @@ func (rs *Replacer) Delete(dictId uint) ([]Dict, error) {
 	return deletedRecord, result.Error
 }
 
-func (rs *Replacer) Replace(msg string) (string, error) {
+func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	var records []Dict
 	res := rs.db.Where(&Dict{GuildId: rs.guildId}).Find(&records)
 	if res.Error == nil {
@@ -70,32 +70,7 @@ func (rs *Replacer) Replace(msg string) (string, error) {
 	return d.replace(msg), nil
 }
 
-type dicts []Dict
-
-func (ds *dicts) replace(msg string) string {
-	rMsg := []rune(msg)
-	for cur := 0; cur < len(rMsg); {
-		isReplaced := false
-		for _, record := range *ds {
-			befLen := len([]rune(record.Before))
-			if cur+befLen > len(rMsg) {
-				continue
-			}
-			if !strings.Contains(string(rMsg[cur:cur+befLen]), record.Before) {
-				continue
-			}
-			rMsg = append(rMsg[0:cur], []rune(strings.Replace(string(rMsg[cur:]), record.Before, record.After, 1))...)
-			cur += len([]rune(record.After))
-			isReplaced = true
-			break
-		}
-		if !isReplaced {
-			cur++
-		}
-	}
-	return string(rMsg)
-}
-func ApplyDict(msg string) string {
+func ApplySysDict(msg string) string {
 	type dict struct {
 		before *regexp.Regexp
 		after  string
@@ -126,4 +101,30 @@ func ApplyDict(msg string) string {
 		msg = d.before.ReplaceAllString(msg, d.after)
 	}
 	return msg
+}
+
+type dicts []Dict
+
+func (ds *dicts) replace(msg string) string {
+	rMsg := []rune(msg)
+	for cur := 0; cur < len(rMsg); {
+		isReplaced := false
+		for _, record := range *ds {
+			befLen := len([]rune(record.Before))
+			if cur+befLen > len(rMsg) {
+				continue
+			}
+			if !strings.Contains(string(rMsg[cur:cur+befLen]), record.Before) {
+				continue
+			}
+			rMsg = append(rMsg[0:cur], []rune(strings.Replace(string(rMsg[cur:]), record.Before, record.After, 1))...)
+			cur += len([]rune(record.After))
+			isReplaced = true
+			break
+		}
+		if !isReplaced {
+			cur++
+		}
+	}
+	return string(rMsg)
 }

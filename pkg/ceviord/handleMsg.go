@@ -185,7 +185,7 @@ func GetMsg(m *discordgo.MessageCreate) string {
 	} else {
 		name = m.Member.Nick
 	}
-	msg := []rune(name + "。" + replace.ApplyDict(m.Content))
+	msg := []rune(name + "。" + replace.ApplySysDict(m.Content))
 	if len(msg) > strLenMax {
 		return string(msg[0:strLenMax])
 	} else {
