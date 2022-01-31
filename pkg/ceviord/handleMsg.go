@@ -89,7 +89,15 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		ceviord.pickedChannel = m.ChannelID
 	}
 	if strings.TrimPrefix(m.Content, prefix) == "bye" && isJoined {
-		ceviord.VoiceConn.Close()
+		defer ceviord.VoiceConn.Close()
+		err = ceviord.VoiceConn.Speaking(false)
+		if err != nil {
+			log.Println(fmt.Errorf("%w", err))
+		}
+		err = ceviord.VoiceConn.Disconnect()
+		if err != nil {
+			log.Println(fmt.Errorf("%w", err))
+		}
 		return
 	}
 
@@ -172,6 +180,14 @@ func ReplaceMsg(msg string) string {
 
 	newDict.before = regexp.MustCompile("\n")
 	newDict.after = " "
+	dicts = append(dicts, newDict)
+
+	newDict.before = regexp.MustCompile("~")
+	newDict.after = "ー"
+	dicts = append(dicts, newDict)
+
+	newDict.before = regexp.MustCompile("〜")
+	newDict.after = "ー"
 	dicts = append(dicts, newDict)
 
 	for _, d := range dicts {
