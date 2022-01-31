@@ -1,15 +1,16 @@
 package ceviord
 
 import (
+	"ceviord/pkg/replace"
 	"crypto"
 	"encoding/hex"
 	"fmt"
 	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
+	"gorm.io/gorm"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 )
@@ -20,6 +21,7 @@ type Ceviord struct {
 	pickedChannel string
 	cevioWav      *cevioWav
 	mutex         sync.Mutex
+	db            *gorm.DB
 }
 
 const prefix = "!"
@@ -36,7 +38,19 @@ var ceviord = Ceviord{
 func SetNewTalker(wav *cevioWav) {
 	ceviord.cevioWav = wav
 }
-
+func SetDb(db *gorm.DB) {
+	ceviord.db = db
+}
+func CloseDb() {
+	db, err := ceviord.db.DB()
+	if err != nil {
+		log.Println(fmt.Errorf("%w", err))
+	}
+	err = db.Close()
+	if err != nil {
+		log.Println(fmt.Errorf("%w", err))
+	}
+}
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
 	if err != nil {
@@ -154,44 +168,10 @@ func GetMsg(m *discordgo.MessageCreate) string {
 	} else {
 		name = m.Member.Nick
 	}
-	msg := []rune(m.Content)
-	msg = []rune(name + "。" + ReplaceMsg(string(msg)))
+	msg := []rune(name + "。" + replace.ApplyDict(m.Content))
 	if len(msg) > strLenMax {
 		return string(msg[0:strLenMax])
 	} else {
 		return string(msg)
 	}
-}
-
-func ReplaceMsg(msg string) string {
-	type dict struct {
-		before *regexp.Regexp
-		after  string
-	}
-	var dicts []dict
-	var newDict dict
-	newDict.before = regexp.MustCompile(`https?://.*`)
-	newDict.after = "ゆーあーるえる。"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("(?s)```(.*)```")
-	newDict.after = "コードブロック"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("\n")
-	newDict.after = " "
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("~")
-	newDict.after = "ー"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("〜")
-	newDict.after = "ー"
-	dicts = append(dicts, newDict)
-
-	for _, d := range dicts {
-		msg = d.before.ReplaceAllString(msg, d.after)
-	}
-	return msg
 }

@@ -5,14 +5,16 @@ import (
 	"flag"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 )
 
 func main() {
-
 	token := flag.String("t", "", "discord token")
 	flag.Parse()
 	if *token == "" {
@@ -34,6 +36,10 @@ func main() {
 	dg.AddHandler(ceviord.MessageCreate)
 	ceviord.SetNewTalker(ceviord.NewTalker())
 
+	db, err := gorm.Open(sqlite.Open(filepath.Join("./", "db.sqlite3")))
+	if err != nil {
+		ceviord.SetDb(db)
+	}
 	// Open the websocket and begin listening.
 	err = dg.Open()
 	if err != nil {
