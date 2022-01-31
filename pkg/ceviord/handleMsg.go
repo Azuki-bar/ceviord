@@ -182,6 +182,10 @@ func ReplaceMsg(msg string) string {
 	newDict.after = " "
 	dicts = append(dicts, newDict)
 
+	newDict.before = regexp.MustCompile("([~〜])")
+	newDict.after = "ー"
+	dicts = append(dicts, newDict)
+
 	for _, d := range dicts {
 		msg = d.before.ReplaceAllString(msg, d.after)
 	}
