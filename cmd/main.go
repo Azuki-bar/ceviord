@@ -33,7 +33,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	var conf ceviord.Parameters
+	var conf ceviord.Config
 	yaml.Unmarshal(conffile, &conf)
 	fmt.Println(conf)
 	ceviord.SetParameters(&conf)

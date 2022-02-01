@@ -21,12 +21,12 @@ type Ceviord struct {
 	VoiceConn     *discordgo.VoiceConnection
 	pickedChannel string
 	cevioWav      *cevioWav
-	parameters    *Parameters
+	conf          *Config
 	currentParam  *Parameter
 	mutex         sync.Mutex
 }
 
-type Parameters struct {
+type Config struct {
 	Parameters []Parameter `yaml:"parameters"`
 }
 
@@ -56,8 +56,8 @@ func SetNewTalker(wav *cevioWav) {
 	ceviord.cevioWav = wav
 }
 
-func SetParameters(para *Parameters) {
-	ceviord.parameters = para
+func SetParameters(para *Config) {
+	ceviord.conf = para
 }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
@@ -126,12 +126,12 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	fmt.Println(strings.TrimPrefix(m.Content, "!"))
 	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), "change ") {
-		for _, p := range ceviord.parameters.Parameters {
+		for _, p := range ceviord.conf.Parameters {
 			got := strings.TrimPrefix(m.Content, prefix+"change ")
 			if got == p.Name {
 				ceviord.currentParam = &p
 				ceviord.cevioWav.ApplyEmotions(ceviord.currentParam)
-				err := speak(fmt.Sprintf("パラメータを %s に変更しました", p.Name))
+				err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました", p.Name))
 				if err != nil {
 					log.Println(fmt.Errorf("speaking about paramerter setting: %w", err))
 				}
@@ -145,7 +145,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	ceviord.mutex.Lock()
-	err = speak(GetMsg(m))
+	err = rawSpeak(GetMsg(m))
 	if err != nil {
 		log.Println(err)
 	}
@@ -157,7 +157,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 }
 
-func speak(text string) error {
+func rawSpeak(text string) error {
 	buf := make([]byte, 16)
 	_, err := rand.Read(buf)
 	if err != nil {
