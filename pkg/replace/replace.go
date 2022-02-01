@@ -12,15 +12,15 @@ import (
 )
 
 type Props struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint      `db:"id, primarykey, autoincrement"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
 }
 type UserDictInput struct {
-	Word          string `gorm:"not null"`
-	Yomi          string `gorm:"not null"`
-	ChangedUserId string `gorm:"not null"`
-	GuildId       string `gorm:"not null"`
+	Word          string `db:"word"`
+	Yomi          string `db:"yomi"`
+	ChangedUserId string `db:"changed_user_id"`
+	GuildId       string `db:"guild_id"`
 }
 type Dict struct {
 	Props
@@ -122,27 +122,13 @@ func ApplySysDict(msg string) string {
 		before *regexp.Regexp
 		after  string
 	}
-	var dicts []dict
-	var newDict dict
-	newDict.before = regexp.MustCompile(`https?://.*`)
-	newDict.after = "ゆーあーるえる。"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("(?s)```(.*)```")
-	newDict.after = "コードブロック"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("\n")
-	newDict.after = " "
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("~")
-	newDict.after = "ー"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("〜")
-	newDict.after = "ー"
-	dicts = append(dicts, newDict)
+	dicts := []dict{
+		{before: regexp.MustCompile(`https?://.*`), after: "ゆーあーるえる。"},
+		{before: regexp.MustCompile("(?s)```(.*)```"), after: "コードブロック"},
+		{before: regexp.MustCompile("\n"), after: " "},
+		{before: regexp.MustCompile("~"), after: "ー"},
+		{before: regexp.MustCompile("〜"), after: "ー"},
+	}
 
 	for _, d := range dicts {
 		msg = d.before.ReplaceAllString(msg, d.after)
