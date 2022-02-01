@@ -13,14 +13,14 @@ import (
 
 type Props struct {
 	ID        uint      `db:"id, primarykey, autoincrement"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	CreatedAt time.Time `db:"created_at, notnullj"`
+	UpdatedAt time.Time `db:"updated_at, notnull"`
 }
 type UserDictInput struct {
-	Word          string `db:"word"`
-	Yomi          string `db:"yomi"`
-	ChangedUserId string `db:"changed_user_id"`
-	GuildId       string `db:"guild_id"`
+	Word          string `db:"word, notnull"`
+	Yomi          string `db:"yomi, notnull"`
+	ChangedUserId string `db:"changed_user_id, notnull"`
+	GuildId       string `db:"guild_id, notnull"`
 }
 type Dict struct {
 	Props
@@ -102,7 +102,7 @@ func (rs *Replacer) Add(dict *UserDictInput) error {
 
 func (rs *Replacer) Delete(dictId uint) (Dict, error) {
 	dict := Dict{}
-	err := rs.gorpDb.SelectOne(&dict, "select * from Dicts where guild_id = ? and id = ?", rs.guildId, dictId)
+	err := rs.gorpDb.SelectOne(&dict, "select * from dicts where guild_id = ? and id = ?", rs.guildId, dictId)
 	if err != nil {
 		return Dict{}, fmt.Errorf("record not found `%w`", err)
 	}
@@ -112,7 +112,7 @@ func (rs *Replacer) Delete(dictId uint) (Dict, error) {
 
 func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	var records []Dict
-	_, err := rs.gorpDb.Select(&records, "select * from Dicts where guild_id = ?", rs.guildId)
+	_, err := rs.gorpDb.Select(&records, "select * from dicts where guild_id = ?", rs.guildId)
 	if err != nil {
 		return "", fmt.Errorf("retrieve user dict failed `%w`", err)
 	}
@@ -121,7 +121,7 @@ func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 }
 func (rs *Replacer) Dump() ([]Dict, error) {
 	var dictList []Dict
-	_, err := rs.gorpDb.Select(&dictList, "select * from Dicts where guild_id = ? order by updated_at desc", rs.guildId)
+	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? order by updated_at desc", rs.guildId)
 	if err != nil {
 		return nil, fmt.Errorf("dump dict error `%w`", err)
 	}
