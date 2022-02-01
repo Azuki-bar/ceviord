@@ -1,6 +1,7 @@
 package ceviord
 
 import (
+	"ceviord/pkg/replace"
 	"crypto"
 	"crypto/rand"
 	"encoding/hex"
@@ -8,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -17,13 +17,14 @@ import (
 )
 
 type Ceviord struct {
-	isJoin        bool
-	VoiceConn     *discordgo.VoiceConnection
-	pickedChannel string
-	cevioWav      *cevioWav
-	conf          *Config
-	currentParam  *Parameter
-	mutex         sync.Mutex
+	isJoin         bool
+	VoiceConn      *discordgo.VoiceConnection
+	pickedChannel  string
+	cevioWav       *cevioWav
+	conf           *Config
+	currentParam   *Parameter
+	mutex          sync.Mutex
+	dictController replace.DbController
 }
 
 type Config struct {
@@ -52,13 +53,9 @@ var ceviord = Ceviord{
 	mutex:         sync.Mutex{},
 }
 
-func SetNewTalker(wav *cevioWav) {
-	ceviord.cevioWav = wav
-}
-
-func SetParameters(para *Config) {
-	ceviord.conf = para
-}
+func SetNewTalker(wav *cevioWav)             { ceviord.cevioWav = wav }
+func SetDbController(r replace.DbController) { ceviord.dictController = r }
+func SetParameters(para *Config)             { ceviord.conf = para }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
@@ -124,7 +121,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	fmt.Println(strings.TrimPrefix(m.Content, "!"))
+	fmt.Println(strings.TrimPrefix(m.Content, prefix))
 	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), "change ") {
 		for _, p := range ceviord.conf.Parameters {
 			got := strings.TrimPrefix(m.Content, prefix+"change ")
@@ -136,6 +133,16 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					log.Println(fmt.Errorf("speaking about paramerter setting: %w", err))
 				}
 			}
+		}
+		return
+	}
+
+	dictCmd := "dict"
+	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), dictCmd+" ") {
+		err := handleDictCmd(m.Content, m.Author.ID, m.GuildID, dictCmd)
+		if err != nil {
+			log.Println(fmt.Errorf("dictionaly handler failed `%w`", err))
+			return
 		}
 		return
 	}
@@ -200,44 +207,16 @@ func GetMsg(m *discordgo.MessageCreate) string {
 	} else {
 		name = m.Member.Nick
 	}
-	msg := []rune(m.Content)
-	msg = []rune(name + "。" + ReplaceMsg(string(msg)))
+	msg := []rune(name + "。" + replace.ApplySysDict(m.Content))
+	ceviord.dictController.SetGuildId(m.GuildID)
+	rawMsg, err := ceviord.dictController.ApplyUserDict(string(msg))
+	if err != nil {
+		log.Println("apply user dict failed `%w`", err)
+	}
+	msg = []rune(rawMsg)
 	if len(msg) > strLenMax {
 		return string(msg[0:strLenMax])
 	} else {
 		return string(msg)
 	}
-}
-
-func ReplaceMsg(msg string) string {
-	type dict struct {
-		before *regexp.Regexp
-		after  string
-	}
-	var dicts []dict
-	var newDict dict
-	newDict.before = regexp.MustCompile(`https?://.*`)
-	newDict.after = "ゆーあーるえる。"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("(?s)```(.*)```")
-	newDict.after = "コードブロック"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("\n")
-	newDict.after = " "
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("~")
-	newDict.after = "ー"
-	dicts = append(dicts, newDict)
-
-	newDict.before = regexp.MustCompile("〜")
-	newDict.after = "ー"
-	dicts = append(dicts, newDict)
-
-	for _, d := range dicts {
-		msg = d.before.ReplaceAllString(msg, d.after)
-	}
-	return msg
 }
