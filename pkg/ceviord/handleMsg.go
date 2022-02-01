@@ -21,8 +21,8 @@ type Ceviord struct {
 	VoiceConn      *discordgo.VoiceConnection
 	pickedChannel  string
 	cevioWav       *cevioWav
-	conf          *Config
-	currentParam  *Parameter
+	conf           *Config
+	currentParam   *Parameter
 	mutex          sync.Mutex
 	dictController replace.DbController
 }
@@ -55,7 +55,7 @@ var ceviord = Ceviord{
 
 func SetNewTalker(wav *cevioWav)             { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
-func SetParameters(para *Config) {	ceviord.conf = para}
+func SetParameters(para *Config)             { ceviord.conf = para }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
@@ -207,6 +207,11 @@ func GetMsg(m *discordgo.MessageCreate) string {
 		name = m.Member.Nick
 	}
 	msg := []rune(name + "。" + replace.ApplySysDict(m.Content))
+	rawMsg, err := ceviord.dictController.ApplyUserDict(string(msg))
+	if err != nil {
+		log.Println("apply user dict failed `%w`", err)
+	}
+	msg = []rune(rawMsg)
 	if len(msg) > strLenMax {
 		return string(msg[0:strLenMax])
 	} else {

@@ -33,6 +33,7 @@ type Replacer struct {
 type DbController interface {
 	Add(dict *UserDictInput) error
 	Delete(dictId uint) (Dict, error)
+	ApplyUserDict(msg string) (string, error)
 }
 
 func initDb(db *sql.DB) (*gorp.DbMap, error) {
