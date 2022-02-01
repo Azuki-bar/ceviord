@@ -29,7 +29,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		if len(cmd) < 3 {
 			return fmt.Errorf("dictionaly yomi record not shown")
 		}
-		err := ceviord.dictController.Add(&replace.UserDictInput{Word: cmd[1], Yomi: strings.Join(cmd[2:], ""),
+		err := ceviord.dictController.Add(&replace.UserDictInput{Word: stringMax(cmd[1], strLenMax), Yomi: stringMax(strings.Join(cmd[2:], ""), strLenMax),
 			ChangedUserId: authorId, GuildId: guildId})
 		if err != nil {
 			return fmt.Errorf("dict add failed `%w`", err)
@@ -51,4 +51,12 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		return fmt.Errorf("dictionaly cmd not found")
 	}
 	return nil
+}
+
+func stringMax(msg string, max int) string {
+	lenMsg := len([]rune(msg))
+	if lenMsg > max {
+		return string([]rune(msg)[0:max])
+	}
+	return msg
 }

@@ -144,6 +144,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			log.Println(fmt.Errorf("dictionaly handler failed `%w`", err))
 			return
 		}
+		return
 	}
 
 	if !(isJoined && m.ChannelID == ceviord.pickedChannel) {
