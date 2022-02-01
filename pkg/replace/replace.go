@@ -115,6 +115,7 @@ func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 		return "", fmt.Errorf("retrieve user dict failed `%w`", err)
 	}
 	d := dicts(records)
+	log.Printf("%#v", d)
 	return d.replace(msg), nil
 }
 
