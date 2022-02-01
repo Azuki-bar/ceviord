@@ -48,7 +48,7 @@ func main() {
 		log.Println(fmt.Errorf("db set failed `%w`", err))
 		return
 	}
-	ceviord.SetReplacer(*r)
+	ceviord.SetDbController(r)
 
 	// Open the websocket and begin listening.
 	err = dg.Open()

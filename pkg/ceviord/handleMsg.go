@@ -10,18 +10,17 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 )
 
 type Ceviord struct {
-	isJoin        bool
-	VoiceConn     *discordgo.VoiceConnection
-	pickedChannel string
-	cevioWav      *cevioWav
-	mutex         sync.Mutex
-	replacer      replace.Replacer
+	isJoin         bool
+	VoiceConn      *discordgo.VoiceConnection
+	pickedChannel  string
+	cevioWav       *cevioWav
+	mutex          sync.Mutex
+	dictController replace.DbController
 }
 
 const prefix = "!"
@@ -35,8 +34,8 @@ var ceviord = Ceviord{
 	mutex:         sync.Mutex{},
 }
 
-func SetNewTalker(wav *cevioWav)     { ceviord.cevioWav = wav }
-func SetReplacer(r replace.Replacer) { ceviord.replacer = r }
+func SetNewTalker(wav *cevioWav)             { ceviord.cevioWav = wav }
+func SetDbController(r replace.DbController) { ceviord.dictController = r }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
@@ -102,36 +101,13 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// todo; なにかの関数に押し込む
 	dictCmd := "dict"
 	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), dictCmd+" ") {
-		var cmd []string
-		for _, c := range strings.Split(strings.TrimPrefix(m.Content, prefix), " ")[1:] {
-			if c != "" {
-				cmd = append(cmd, c)
-			}
+		err := handleDictCmd(m.Content, m.Author.ID, m.GuildID, dictCmd)
+		if err != nil {
+			log.Println(fmt.Errorf("dictionaly handler failed `%w`", err))
+			return
 		}
-		if len(cmd) < 3 {
-
-		}
-		switch cmd[0] {
-		case "add":
-			err := ceviord.replacer.Add(&replace.UserDictInput{Word: cmd[1], Yomi: strings.Join(cmd[2:], ""),
-				ChangedUserId: m.Author.ID, GuildId: m.GuildID})
-			if err != nil {
-			}
-		case "del":
-			id, err := strconv.Atoi(cmd[1])
-			if err != nil {
-			}
-			_, err = ceviord.replacer.Delete(uint(id))
-			if err != nil {
-
-			}
-		default:
-
-		}
-
 	}
 
 	if !(isJoined && m.ChannelID == ceviord.pickedChannel) {

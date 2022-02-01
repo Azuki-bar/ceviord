@@ -30,6 +30,10 @@ type Replacer struct {
 	gorpDb  *gorp.DbMap
 	guildId string
 }
+type DbController interface {
+	Add(dict *UserDictInput) error
+	Delete(dictId uint) (Dict, error)
+}
 
 func initDb(db *sql.DB) (*gorp.DbMap, error) {
 	dbMap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
