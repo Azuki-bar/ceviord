@@ -110,7 +110,8 @@ func (rs *Replacer) Delete(dictId uint) (Dict, error) {
 
 func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	var records []Dict
-	_, err := rs.gorpDb.Select(&records, "select * from dicts where guild_id = ?", rs.guildId)
+	i, err := rs.gorpDb.Select(&records, "select * from dicts where guild_id = ?", rs.guildId)
+	log.Printf("i%d\n guildId:%d", i, rs.guildId)
 	if err != nil {
 		return "", fmt.Errorf("retrieve user dict failed `%w`", err)
 	}
