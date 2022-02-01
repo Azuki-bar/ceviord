@@ -130,7 +130,9 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			got := strings.TrimPrefix(m.Content, prefix+"change ")
 			if got == p.Name {
 				ceviord.currentParam = &p
+				ceviord.mutex.Lock()
 				ceviord.cevioWav.ApplyEmotions(ceviord.currentParam)
+				ceviord.mutex.Unlock()
 				err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました", p.Name))
 				if err != nil {
 					log.Println(fmt.Errorf("speaking about paramerter setting: %w", err))
