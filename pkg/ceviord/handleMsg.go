@@ -207,6 +207,7 @@ func GetMsg(m *discordgo.MessageCreate) string {
 		name = m.Member.Nick
 	}
 	msg := []rune(name + "。" + replace.ApplySysDict(m.Content))
+	ceviord.dictController.SetGuildId(m.GuildID)
 	rawMsg, err := ceviord.dictController.ApplyUserDict(string(msg))
 	if err != nil {
 		log.Println("apply user dict failed `%w`", err)

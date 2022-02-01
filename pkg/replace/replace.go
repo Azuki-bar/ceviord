@@ -34,6 +34,7 @@ type DbController interface {
 	Add(dict *UserDictInput) error
 	Delete(dictId uint) (Dict, error)
 	ApplyUserDict(msg string) (string, error)
+	SetGuildId(guildId string)
 }
 
 func initDb(db *sql.DB) (*gorp.DbMap, error) {
@@ -111,7 +112,7 @@ func (rs *Replacer) Delete(dictId uint) (Dict, error) {
 func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	var records []Dict
 	i, err := rs.gorpDb.Select(&records, "select * from dicts where guild_id = ?", rs.guildId)
-	log.Printf("i%d\n guildId:%d", i, rs.guildId)
+	log.Printf("i%d\n guildId:%s", i, rs.guildId)
 	if err != nil {
 		return "", fmt.Errorf("retrieve user dict failed `%w`", err)
 	}
