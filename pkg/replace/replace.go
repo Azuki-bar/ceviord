@@ -63,7 +63,7 @@ func (rs *Replacer) Add(dict *UserDictInput) error {
 		return fmt.Errorf("upsert failed `%w`", err)
 	}
 	isExist := len(findRes) != 0
-	if isExist {
+	if !isExist {
 		insertDict := Dict{
 			Props:         Props{ID: 0, CreatedAt: time.Now(), UpdatedAt: time.Now()},
 			UserDictInput: *dict,
