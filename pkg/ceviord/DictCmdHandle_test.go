@@ -11,6 +11,8 @@ func (ReplacerMock) Add(dict *replace.UserDictInput) error    { return nil }
 func (ReplacerMock) Delete(dictId uint) (replace.Dict, error) { return replace.Dict{}, nil }
 func (ReplacerMock) ApplyUserDict(msg string) (string, error) { return "", nil }
 func (ReplacerMock) SetGuildId(guildId string)                {}
+func (ReplacerMock) Dump() ([]replace.Dict, error)            { return nil, nil }
+
 func Test_handleDictCmd(t *testing.T) {
 	ceviord.dictController = ReplacerMock{}
 	type args struct {

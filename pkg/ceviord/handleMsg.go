@@ -2,9 +2,7 @@ package ceviord
 
 import (
 	"ceviord/pkg/replace"
-	"crypto"
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -18,6 +16,7 @@ import (
 
 type Ceviord struct {
 	isJoin         bool
+	session        *discordgo.Session
 	VoiceConn      *discordgo.VoiceConnection
 	pickedChannel  string
 	cevioWav       *cevioWav
@@ -189,15 +188,17 @@ func VoiceStateUpdate(session *discordgo.Session, update discordgo.VoiceStateUpd
 
 }
 
-func RandFileNameGen(m *discordgo.MessageCreate) (string, error) {
-	hash := crypto.MD5.New()
-	defer hash.Reset()
-	t, err := m.Timestamp.Parse()
-	if err != nil {
-		return "", err
+func SendMsg(msg string) error {
+	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
+	if len([]rune(msg)) > 2000 {
+		return fmt.Errorf("discord message send limitation error")
 	}
-	hash.Write([]byte(t.String() + m.Content))
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	_, err := ceviord.session.ChannelMessageSend(ceviord.pickedChannel, msg)
+	return err
+}
+func SendEmbedMsg(embed *discordgo.MessageEmbed) error {
+	_, err := ceviord.session.ChannelMessageSendEmbed(ceviord.pickedChannel, embed)
+	return err
 }
 
 func GetMsg(m *discordgo.MessageCreate) string {

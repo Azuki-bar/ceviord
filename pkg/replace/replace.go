@@ -35,11 +35,12 @@ type DbController interface {
 	Delete(dictId uint) (Dict, error)
 	ApplyUserDict(msg string) (string, error)
 	SetGuildId(guildId string)
+	Dump() ([]Dict, error)
 }
 
 func initDb(db *sql.DB) (*gorp.DbMap, error) {
 	dbMap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-	dbMap.AddTableWithName(Dict{}, "dicts").SetKeys(true, "ID")
+	dbMap.AddTableWithName(Dict{}, "Dicts").SetKeys(true, "ID")
 	err := dbMap.CreateTablesIfNotExists()
 	if err != nil {
 		log.Println(fmt.Errorf("create table failed `%w`", err))
@@ -60,7 +61,7 @@ func (rs *Replacer) SetGuildId(guildId string) { rs.guildId = guildId }
 
 func (rs *Replacer) Add(dict *UserDictInput) error {
 	var findRes []Dict
-	_, err := rs.gorpDb.Select(&findRes, "select * from dicts where word = ? and guild_id = ? order by updated_at desc;", dict.Word, dict.GuildId)
+	_, err := rs.gorpDb.Select(&findRes, "select * from Dicts where word = ? and guild_id = ? order by updated_at desc;", dict.Word, dict.GuildId)
 	if err != nil {
 		return fmt.Errorf("upsert failed `%w`", err)
 	}
@@ -101,7 +102,7 @@ func (rs *Replacer) Add(dict *UserDictInput) error {
 
 func (rs *Replacer) Delete(dictId uint) (Dict, error) {
 	dict := Dict{}
-	err := rs.gorpDb.SelectOne(&dict, "select * from dicts where guild_id = ? and id = ?", rs.guildId, dictId)
+	err := rs.gorpDb.SelectOne(&dict, "select * from Dicts where guild_id = ? and id = ?", rs.guildId, dictId)
 	if err != nil {
 		return Dict{}, fmt.Errorf("record not found `%w`", err)
 	}
@@ -111,15 +112,21 @@ func (rs *Replacer) Delete(dictId uint) (Dict, error) {
 
 func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	var records []Dict
-	_, err := rs.gorpDb.Select(&records, "select * from dicts where guild_id = ?", rs.guildId)
+	_, err := rs.gorpDb.Select(&records, "select * from Dicts where guild_id = ?", rs.guildId)
 	if err != nil {
 		return "", fmt.Errorf("retrieve user dict failed `%w`", err)
 	}
-	d := dicts(records)
-	log.Printf("%#v", d)
+	d := Dicts(records)
 	return d.replace(msg), nil
 }
-
+func (rs *Replacer) Dump() ([]Dict, error) {
+	var dictList []Dict
+	_, err := rs.gorpDb.Select(&dictList, "select * from Dicts where guild_id = ? order by updated_at desc", rs.guildId)
+	if err != nil {
+		return nil, fmt.Errorf("dump dict error `%w`", err)
+	}
+	return dictList, nil
+}
 func ApplySysDict(msg string) string {
 	type dict struct {
 		before *regexp.Regexp
@@ -138,10 +145,18 @@ func ApplySysDict(msg string) string {
 	}
 	return msg
 }
+func (ds *Dicts) Dump() []string {
+	var res []string
+	res = append(res, "ID\t単語\tよみ", "---------------------------")
+	for _, v := range *ds {
+		res = append(res, fmt.Sprintf("%d\t%s\t%s", v.ID, v.Word, v.Yomi))
+	}
+	return res
+}
 
-type dicts []Dict
+type Dicts []Dict
 
-func (ds *dicts) replace(msg string) string {
+func (ds *Dicts) replace(msg string) string {
 	rMsg := []rune(msg)
 	for cur := 0; cur < len(rMsg); {
 		isReplaced := false
