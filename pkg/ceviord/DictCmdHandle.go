@@ -21,6 +21,9 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 	if len(cmd) < 2 {
 		return fmt.Errorf("dictionaly cmd is not specific")
 	}
+	if ceviord.dictController == nil {
+		return fmt.Errorf("db controller is not defined")
+	}
 	switch cmd[0] {
 	case "add":
 		if len(cmd) < 3 {
