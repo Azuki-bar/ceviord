@@ -29,7 +29,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		if len(cmd) < 3 {
 			return fmt.Errorf("dictionaly yomi record not shown")
 		}
-		err := ceviord.dictController.Add(&replace.UserDictInput{Word: cmd[2], Yomi: strings.Join(cmd[3:], ""),
+		err := ceviord.dictController.Add(&replace.UserDictInput{Word: cmd[1], Yomi: strings.Join(cmd[2:], ""),
 			ChangedUserId: authorId, GuildId: guildId})
 		if err != nil {
 			return fmt.Errorf("dict add failed `%w`", err)
