@@ -1,0 +1,49 @@
+parameters:
+- name: sasara-default
+  cast: さとうささら
+  volume: 50
+  speed: 54
+  tone: 50
+  tonescale: 50
+  alpha: 50
+  emotions:
+    普通: 100
+    元気: 0
+    怒り: 0
+    哀しみ: 0
+- name: sasara-mukanjo
+  cast: さとうささら
+  volume: 50
+  speed: 54
+  tone: 48
+  tonescale: 50
+  alpha: 50
+  emotions:
+    普通: 100
+    元気: 50
+    怒り: 46
+    哀しみ: 39
+- name: sasara-angry
+  cast: さとうささら
+  volume: 50
+  speed: 54
+  tone: 50
+  tonescale: 50
+  alpha: 50
+  emotions:
+    普通: 0
+    元気: 0
+    怒り: 100
+    哀しみ: 0
+- name: sasara-kanashi
+  cast: さとうささら
+  volume: 50
+  speed: 54
+  tone: 50
+  tonescale: 50
+  alpha: 50
+  emotions:
+    普通: 0
+    元気: 0
+    怒り: 0
+    哀しみ: 100
