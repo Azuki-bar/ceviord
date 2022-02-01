@@ -1,70 +1,113 @@
 package replace
 
 import (
-	"errors"
+	"database/sql"
 	"fmt"
-	"gorm.io/gorm"
+	"github.com/go-gorp/gorp"
+	_ "github.com/mattn/go-sqlite3"
+	"log"
 	"regexp"
 	"strings"
+	"time"
 )
 
-type Dict struct {
-	gorm.Model
+type Props struct {
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+type UserDictInput struct {
 	Word          string `gorm:"not null"`
 	Yomi          string `gorm:"not null"`
 	ChangedUserId string `gorm:"not null"`
 	GuildId       string `gorm:"not null"`
 }
+type Dict struct {
+	Props
+	UserDictInput
+}
 type Replacer struct {
-	db      *gorm.DB
+	gorpDb  *gorp.DbMap
 	guildId string
 }
 
-func NewReplacer(db *gorm.DB) (*Replacer, error) {
+func initDb(db *sql.DB) (*gorp.DbMap, error) {
+	dbMap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+	dbMap.AddTableWithName(Dict{}, "dicts").SetKeys(true, "ID")
+	err := dbMap.CreateTablesIfNotExists()
+	if err != nil {
+		log.Println(fmt.Errorf("create table failed `%w`", err))
+		return nil, err
+	}
+	return dbMap, nil
+}
+func NewReplacer(db *sql.DB) (*Replacer, error) {
 	rs := &Replacer{}
-	err := rs.SetDb(db)
+	dbMap, err := initDb(db)
 	if err != nil {
 		return nil, err
 	}
+	rs.gorpDb = dbMap
 	return rs, nil
 }
-func (rs *Replacer) SetDb(db *gorm.DB) error {
-	rs.db = db
-	err := db.AutoMigrate(&Dict{})
-	if err != nil {
-		return fmt.Errorf("db auto migration failed `%w`", err)
-	}
-	return nil
-}
 func (rs *Replacer) SetGuildId(guildId string) { rs.guildId = guildId }
-func (rs *Replacer) Add(dict *Dict) error {
-	findRes := Dict{}
-	result := rs.db.Where(&Dict{Word: dict.Word}).First(&findRes)
-	isExist := errors.Is(result.Error, gorm.ErrRecordNotFound)
+
+func (rs *Replacer) Add(dict *UserDictInput) error {
+	var findRes []Dict
+	_, err := rs.gorpDb.Select(&findRes, "select * from dicts where word = ? and guild_id = ? order by updated_at desc;", dict.Word, dict.GuildId)
+	if err != nil {
+		return fmt.Errorf("upsert failed `%w`", err)
+	}
+	isExist := len(findRes) != 0
 	if isExist {
-		result = rs.db.Create(dict)
+		insertDict := Dict{
+			Props:         Props{ID: 0, CreatedAt: time.Now(), UpdatedAt: time.Now()},
+			UserDictInput: *dict,
+		}
+		err := rs.gorpDb.Insert(&insertDict)
+		if err != nil {
+			return fmt.Errorf("insert failed `%w`", err)
+		}
+		return nil
 	} else {
-		result = rs.db.Save(dict)
+		if len(findRes) > 1 {
+			i, err := rs.gorpDb.Delete(findRes[1:])
+			if i == 0 {
+				log.Printf("want to delete dupricate record but not deleted")
+			}
+			if err != nil {
+				return fmt.Errorf("deplicate record delete err `%w`", err)
+			}
+		}
+		updateDict := findRes[0]
+		updateDict.UpdatedAt = time.Now()
+		updateDict.UserDictInput = *dict
+		i, err := rs.gorpDb.Update([]Dict{updateDict})
+		if i != 0 {
+			return fmt.Errorf("no update execute")
+		}
+		if err != nil {
+			return fmt.Errorf("update execute failed `%w`", err)
+		}
+		return nil
 	}
-	return result.Error
 }
-func (rs *Replacer) Delete(dictId uint) ([]Dict, error) {
-	result := rs.db.Where(&Dict{GuildId: rs.guildId, Model: gorm.Model{ID: dictId}}).First(&Dict{})
-	if result.Error != nil {
-		return []Dict{}, result.Error
+
+func (rs *Replacer) Delete(dictId uint) (Dict, error) {
+	dict := Dict{}
+	err := rs.gorpDb.SelectOne(&dict, "select * from dicts where guild_id = ? and id = ?", rs.guildId, dictId)
+	if err != nil {
+		return Dict{}, fmt.Errorf("record not found `%w`", err)
 	}
-	var deletedRecord []Dict
-	result = rs.db.Where(result).Delete(&deletedRecord, dictId)
-	return deletedRecord, result.Error
+	_, err = rs.gorpDb.Delete(&dict)
+	return dict, err
 }
 
 func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	var records []Dict
-	res := rs.db.Where(&Dict{GuildId: rs.guildId}).Find(&records)
-	if res.Error == nil {
-	} else if res.Error != nil && errors.Is(res.Error, gorm.ErrRecordNotFound) {
-	} else {
-		return "", res.Error
+	_, err := rs.gorpDb.Select(&records, "select * from dicts where guild_id = ?")
+	if err != nil {
+		return "", fmt.Errorf("retrieve user dict failed `%w`", err)
 	}
 	d := dicts(records)
 	return d.replace(msg), nil

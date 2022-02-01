@@ -3,11 +3,10 @@ package main
 import (
 	"ceviord/pkg/ceviord"
 	"ceviord/pkg/replace"
+	"database/sql"
 	"flag"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"log"
 	"os"
 	"os/signal"
@@ -37,25 +36,13 @@ func main() {
 	dg.AddHandler(ceviord.MessageCreate)
 	ceviord.SetNewTalker(ceviord.NewTalker())
 
-	db, err := gorm.Open(sqlite.Open(filepath.Join("./", "dictionaries.sqlite3")))
+	//db, err := gorm.Open(sqlite.Open(filepath.Join("./", "dictionaries.sqlite3")))
+	db, err := sql.Open("sqlite3", filepath.Join("./", "dictionaries.sqlite3"))
 	if err != nil {
 		log.Println(fmt.Errorf("db connection failed `%w`", err))
 		return
 	}
-	defer func() {
-		sqlDb, err := db.DB()
-		if err != nil {
-			log.Println(fmt.Errorf("%w", err))
-			return
-		}
-		err = sqlDb.Close()
-		if err != nil {
-			log.Println(fmt.Errorf("%w", err))
-		}
-	}()
-	if err != nil {
-		return
-	}
+	defer db.Close()
 	r, err := replace.NewReplacer(db)
 	if err != nil {
 		log.Println(fmt.Errorf("db set failed `%w`", err))
