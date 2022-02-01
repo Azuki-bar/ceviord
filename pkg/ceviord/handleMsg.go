@@ -116,7 +116,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		switch cmd[0] {
 		case "add":
-			err := ceviord.replacer.Add(&replace.Dict{Word: cmd[1], Yomi: strings.Join(cmd[2:], ""),
+			err := ceviord.replacer.Add(&replace.UserDictInput{Word: cmd[1], Yomi: strings.Join(cmd[2:], ""),
 				ChangedUserId: m.Author.ID, GuildId: m.GuildID})
 			if err != nil {
 			}
@@ -128,6 +128,8 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if err != nil {
 
 			}
+		default:
+
 		}
 
 	}
