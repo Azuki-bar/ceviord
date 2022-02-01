@@ -144,12 +144,10 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	ceviord.mutex.Lock()
 	err = rawSpeak(GetMsg(m))
 	if err != nil {
 		log.Println(err)
 	}
-	ceviord.mutex.Unlock()
 
 	//if vcs.ChannelID == "" {
 	//	s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
@@ -158,6 +156,8 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func rawSpeak(text string) error {
+	ceviord.mutex.Lock()
+	defer ceviord.mutex.Unlock()
 	buf := make([]byte, 16)
 	_, err := rand.Read(buf)
 	if err != nil {
