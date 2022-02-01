@@ -2,16 +2,18 @@ package ceviord
 
 import (
 	"crypto"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/bwmarrin/dgvoice"
-	"github.com/bwmarrin/discordgo"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/bwmarrin/dgvoice"
+	"github.com/bwmarrin/discordgo"
 )
 
 type Ceviord struct {
@@ -19,7 +21,24 @@ type Ceviord struct {
 	VoiceConn     *discordgo.VoiceConnection
 	pickedChannel string
 	cevioWav      *cevioWav
+	conf          *Config
+	currentParam  *Parameter
 	mutex         sync.Mutex
+}
+
+type Config struct {
+	Parameters []Parameter `yaml:"parameters"`
+}
+
+type Parameter struct {
+	Name      string         `yaml:"name"`
+	Cast      string         `yaml:"cast"`
+	Volume    int            `yaml:"volume"`
+	Speed     int            `yaml:"speed"`
+	Tone      int            `yaml:"tone"`
+	Tonescale int            `yaml:"tonescale"`
+	Alpha     int            `yaml:"alpha"`
+	Emotions  map[string]int `yaml:"emotions"`
 }
 
 const prefix = "!"
@@ -35,6 +54,10 @@ var ceviord = Ceviord{
 
 func SetNewTalker(wav *cevioWav) {
 	ceviord.cevioWav = wav
+}
+
+func SetParameters(para *Config) {
+	ceviord.conf = para
 }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
@@ -84,7 +107,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.TrimPrefix(m.Content, prefix) == "sasara" && !isJoined {
 		ceviord.VoiceConn, err = s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
 		if err != nil {
-			log.Println(fmt.Errorf("%w", err))
+			log.Println(fmt.Errorf("joining: %w", err))
 		}
 		ceviord.pickedChannel = m.ChannelID
 	}
@@ -92,11 +115,27 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		defer ceviord.VoiceConn.Close()
 		err = ceviord.VoiceConn.Speaking(false)
 		if err != nil {
-			log.Println(fmt.Errorf("%w", err))
+			log.Println(fmt.Errorf("speaking falsing: %w", err))
 		}
 		err = ceviord.VoiceConn.Disconnect()
 		if err != nil {
-			log.Println(fmt.Errorf("%w", err))
+			log.Println(fmt.Errorf("disconnecting: %w", err))
+		}
+		return
+	}
+
+	fmt.Println(strings.TrimPrefix(m.Content, "!"))
+	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), "change ") {
+		for _, p := range ceviord.conf.Parameters {
+			got := strings.TrimPrefix(m.Content, prefix+"change ")
+			if got == p.Name {
+				ceviord.currentParam = &p
+				ceviord.cevioWav.ApplyEmotions(ceviord.currentParam)
+				err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました", p.Name))
+				if err != nil {
+					log.Println(fmt.Errorf("speaking about paramerter setting: %w", err))
+				}
+			}
 		}
 		return
 	}
@@ -106,30 +145,37 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	ceviord.mutex.Lock()
-	fPath, err := RandFileNameGen(m)
+	err = rawSpeak(GetMsg(m))
 	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
-		return
+		log.Println(err)
 	}
-	fPath = filepath.Join(tmpDir, fPath)
-	err = os.MkdirAll(filepath.Dir(fPath), os.FileMode(0755))
-	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
-		return
-	}
-	err = ceviord.cevioWav.OutputWaveToFile(GetMsg(m), fPath)
-	defer os.Remove(fPath)
-	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
-		return
-	}
-	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
 	ceviord.mutex.Unlock()
 
 	//if vcs.ChannelID == "" {
 	//	s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
 	//}
 
+}
+
+func rawSpeak(text string) error {
+	buf := make([]byte, 16)
+	_, err := rand.Read(buf)
+	if err != nil {
+		return fmt.Errorf("generating rand: %w", err)
+	}
+	fPath := fmt.Sprintf("%8x", buf)
+	fPath = filepath.Join(tmpDir, fPath)
+	err = os.MkdirAll(filepath.Dir(fPath), os.FileMode(0755))
+	if err != nil {
+		return fmt.Errorf("making dir: %w", err)
+	}
+	err = ceviord.cevioWav.OutputWaveToFile(text, fPath)
+	defer os.Remove(fPath)
+	if err != nil {
+		return fmt.Errorf("outputting: %w", err)
+	}
+	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
+	return nil
 }
 
 func VoiceStateUpdate(session *discordgo.Session, update discordgo.VoiceStateUpdate) {

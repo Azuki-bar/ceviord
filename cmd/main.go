@@ -4,11 +4,14 @@ import (
 	"ceviord/pkg/ceviord"
 	"flag"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/bwmarrin/discordgo"
+	"gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -26,6 +29,14 @@ func main() {
 		return
 	}
 
+	conffile, err := ioutil.ReadFile("./parameter.yaml")
+	if err != nil {
+		panic(err)
+	}
+	var conf ceviord.Config
+	yaml.Unmarshal(conffile, &conf)
+	fmt.Println(conf)
+	ceviord.SetParameters(&conf)
 	// Create a new Application
 	ap := &discordgo.Application{}
 	ap.Name = "ceviord"
