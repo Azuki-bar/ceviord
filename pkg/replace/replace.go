@@ -145,6 +145,7 @@ func ApplySysDict(msg string) string {
 	}
 	return msg
 }
+
 func (ds *Dicts) Dump() []string {
 	var res []string
 	res = append(res, "ID\t単語\tよみ", "---------------------------")
