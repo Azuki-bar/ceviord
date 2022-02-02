@@ -89,6 +89,18 @@ func TestRecords_Replace(t *testing.T) {
 			name: "no records", ds: Dicts{},
 			args: args{msg: `こんにちは。`}, want: `こんにちは。`,
 		},
+		{
+			name: "GITHUB", ds: Dicts{
+				Dict{UserDictInput: UserDictInput{Word: "github", Yomi: "ぎっとはぶ"}},
+			},
+			args: args{msg: `GITHUB`}, want: `ぎっとはぶ`,
+		},
+		{
+			name: "Github", ds: Dicts{
+				Dict{UserDictInput: UserDictInput{Word: "GITHUB", Yomi: "ぎっとはぶ"}},
+			},
+			args: args{msg: `Github`}, want: `ぎっとはぶ`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
