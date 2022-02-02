@@ -13,7 +13,7 @@ import (
 
 type Props struct {
 	ID        uint      `db:"id, primarykey, autoincrement"`
-	CreatedAt time.Time `db:"created_at, notnullj"`
+	CreatedAt time.Time `db:"created_at, notnull"`
 	UpdatedAt time.Time `db:"updated_at, notnull"`
 }
 type UserDictInput struct {
