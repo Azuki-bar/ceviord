@@ -3,12 +3,13 @@ package ceviord
 import (
 	"ceviord/pkg/replace"
 	"fmt"
+	"github.com/bwmarrin/discordgo"
 	"log"
 	"strconv"
 	"strings"
 )
 
-func handleDictCmd(content, authorId, guildId, dictCmd string) error {
+func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordgo.Session) error {
 	if !strings.HasPrefix(content, prefix+dictCmd) {
 		return fmt.Errorf("dict cmd not called")
 	}
@@ -72,7 +73,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 			cur++
 		}
 		for _, v := range printsStr {
-			err := SendMsg(v)
+			err := SendMsg(v, session)
 			if err != nil {
 				return fmt.Errorf("dump dict list failed `%w`", err)
 			}

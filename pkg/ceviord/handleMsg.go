@@ -16,7 +16,6 @@ import (
 
 type Ceviord struct {
 	isJoin         bool
-	session        *discordgo.Session
 	VoiceConn      *discordgo.VoiceConnection
 	pickedChannel  string
 	cevioWav       *cevioWav
@@ -138,7 +137,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	dictCmd := "dict"
 	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), dictCmd+" ") {
-		err := handleDictCmd(m.Content, m.Author.ID, m.GuildID, dictCmd)
+		err := handleDictCmd(m.Content, m.Author.ID, m.GuildID, dictCmd, s)
 		if err != nil {
 			log.Println(fmt.Errorf("dictionaly handler failed `%w`", err))
 			return
@@ -188,16 +187,12 @@ func VoiceStateUpdate(session *discordgo.Session, update discordgo.VoiceStateUpd
 
 }
 
-func SendMsg(msg string) error {
+func SendMsg(msg string, session *discordgo.Session) error {
 	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
 	if len([]rune(msg)) > 2000 {
 		return fmt.Errorf("discord message send limitation error")
 	}
-	_, err := ceviord.session.ChannelMessageSend(ceviord.pickedChannel, msg)
-	return err
-}
-func SendEmbedMsg(embed *discordgo.MessageEmbed) error {
-	_, err := ceviord.session.ChannelMessageSendEmbed(ceviord.pickedChannel, embed)
+	_, err := session.ChannelMessageSend(ceviord.pickedChannel, msg)
 	return err
 }
 
