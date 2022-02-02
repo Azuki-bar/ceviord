@@ -60,6 +60,9 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 			return nil
 		}
 		dumpLists := d.Dump()
+		if dumpLists == nil {
+			return nil
+		}
 		var printsStr []string
 		limit := 2000
 		cur := 0
