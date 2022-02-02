@@ -64,15 +64,17 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 		d := dicts.Dump()
 		printsStr := make([]string, 1)
 		limit := 2000
-		cur := 0
-		for _, v := range d {
-			for len([]rune(printsStr[cur]+v+"\n")) < limit {
+		for cur := 0; len([]rune(printsStr[cur]+"\n")) < limit; cur++ {
+			for _, v := range d {
 				printsStr[cur] = printsStr[cur] + v + "\n"
 			}
 			printsStr = append(printsStr, "")
-			cur++
 		}
+
 		for _, v := range printsStr {
+			if v == "" {
+				continue
+			}
 			err := SendMsg(v, session)
 			if err != nil {
 				return fmt.Errorf("dump dict list failed `%w`", err)

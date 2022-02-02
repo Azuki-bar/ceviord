@@ -191,6 +191,8 @@ func SendMsg(msg string, session *discordgo.Session) error {
 	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
 	if len([]rune(msg)) > 2000 {
 		return fmt.Errorf("discord message send limitation error")
+	} else if len([]rune(msg)) == 0 {
+		return fmt.Errorf("message len is 0")
 	}
 	_, err := session.ChannelMessageSend(ceviord.pickedChannel, msg)
 	return err
