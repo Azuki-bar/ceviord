@@ -168,7 +168,10 @@ func (ds *Dicts) replace(msg string) string {
 			if !strings.Contains(string(rMsg[cur:cur+befLen]), record.Word) {
 				continue
 			}
-			rMsg = append(rMsg[0:cur], []rune(strings.Replace(string(rMsg[cur:]), record.Word, record.Yomi, 1))...)
+			rMsg = append(rMsg[0:cur], []rune(strings.Replace(
+				strings.ToLower(string(rMsg[cur:])),
+				strings.ToLower(record.Word),
+				record.Yomi, 1))...)
 			cur += len([]rune(record.Yomi))
 			isReplaced = true
 			break
