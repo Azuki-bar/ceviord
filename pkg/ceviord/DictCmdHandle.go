@@ -61,16 +61,18 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 			return nil
 		}
 		dicts := replace.Dicts(lists)
-		d := dicts.Dump()
+		dump := dicts.Dump()
 		printsStr := make([]string, 1)
 		limit := 2000
-		for cur := 0; len([]rune(printsStr[cur]+"\n")) < limit; cur++ {
-			for _, v := range d {
-				printsStr[cur] = printsStr[cur] + v + "\n"
+		cur := 0
+		for _, d := range dump {
+			if len([]rune(printsStr[cur]+d+"\n")) >= limit {
+				printsStr = append(printsStr, d+"\n")
+				cur++
+			} else {
+				printsStr[cur] = printsStr[cur] + d + "\n"
 			}
-			printsStr = append(printsStr, "")
 		}
-
 		for _, v := range printsStr {
 			if v == "" {
 				continue
