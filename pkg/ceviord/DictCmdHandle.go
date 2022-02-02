@@ -3,12 +3,13 @@ package ceviord
 import (
 	"ceviord/pkg/replace"
 	"fmt"
+	"github.com/bwmarrin/discordgo"
 	"log"
 	"strconv"
 	"strings"
 )
 
-func handleDictCmd(content, authorId, guildId, dictCmd string) error {
+func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordgo.Session) error {
 	if !strings.HasPrefix(content, prefix+dictCmd) {
 		return fmt.Errorf("dict cmd not called")
 	}
@@ -18,7 +19,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 			cmd = append(cmd, c)
 		}
 	}
-	if len(cmd) < 2 {
+	if len(cmd) < 1 {
 		return fmt.Errorf("dictionaly cmd is not specific")
 	}
 	if ceviord.dictController == nil {
@@ -29,7 +30,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		if len(cmd) < 3 {
 			return fmt.Errorf("dictionaly yomi record not shown")
 		}
-		err := ceviord.dictController.Add(&replace.UserDictInput{Word: stringMax(cmd[1], strLenMax), Yomi: stringMax(strings.Join(cmd[2:], ""), strLenMax),
+		err := ceviord.dictController.Add(&replace.UserDictInput{Word: stringMax(cmd[1], strLenMax), Yomi: stringMax(strings.Join(cmd[2:], " "), strLenMax),
 			ChangedUserId: authorId, GuildId: guildId})
 		if err != nil {
 			return fmt.Errorf("dict add failed `%w`", err)
@@ -37,6 +38,9 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		log.Println("dictionary add succeed")
 		log.Println(cmd)
 	case "del":
+		if len(cmd) < 2 {
+			return fmt.Errorf("delete id is not specification")
+		}
 		id, err := strconv.Atoi(cmd[1])
 		if err != nil {
 			return fmt.Errorf("id specification failed `%w`", err)
@@ -47,6 +51,38 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		}
 		log.Println("dictionary delete succeed")
 		log.Println(cmd)
+	case "list":
+		lists, err := ceviord.dictController.Dump()
+		if err != nil {
+			return fmt.Errorf("dictionnary dump failed `%w`", err)
+		}
+		if lists == nil {
+			log.Printf("no dictionary record")
+			return nil
+		}
+		dicts := replace.Dicts(lists)
+		dump := dicts.Dump()
+		printsStr := make([]string, 1)
+		limit := 2000
+		cur := 0
+		for _, d := range dump {
+			if len([]rune(printsStr[cur]+d+"\n")) >= limit {
+				printsStr = append(printsStr, d+"\n")
+				cur++
+			} else {
+				printsStr[cur] = printsStr[cur] + d + "\n"
+			}
+		}
+		for _, v := range printsStr {
+			if v == "" {
+				continue
+			}
+			err := SendMsg(v, session)
+			if err != nil {
+				return fmt.Errorf("dump dict list failed `%w`", err)
+			}
+		}
+
 	default:
 		return fmt.Errorf("dictionaly cmd not found")
 	}

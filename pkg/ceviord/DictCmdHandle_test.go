@@ -11,6 +11,8 @@ func (ReplacerMock) Add(dict *replace.UserDictInput) error    { return nil }
 func (ReplacerMock) Delete(dictId uint) (replace.Dict, error) { return replace.Dict{}, nil }
 func (ReplacerMock) ApplyUserDict(msg string) (string, error) { return "", nil }
 func (ReplacerMock) SetGuildId(guildId string)                {}
+func (ReplacerMock) Dump() ([]replace.Dict, error)            { return nil, nil }
+
 func Test_handleDictCmd(t *testing.T) {
 	ceviord.dictController = ReplacerMock{}
 	type args struct {
@@ -74,10 +76,15 @@ func Test_handleDictCmd(t *testing.T) {
 			args:    args{content: prefix + "dict del 1 s", dictCmd: "dict"},
 			wantErr: false,
 		},
+		{
+			name:    "dict list",
+			args:    args{content: prefix + "dict list", dictCmd: "dict"},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := handleDictCmd(tt.args.content, tt.args.authorId, tt.args.guildId, tt.args.dictCmd); (err != nil) != tt.wantErr {
+			if err := handleDictCmd(tt.args.content, tt.args.authorId, tt.args.guildId, tt.args.dictCmd, nil); (err != nil) != tt.wantErr {
 				t.Errorf("handleDictCmd() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

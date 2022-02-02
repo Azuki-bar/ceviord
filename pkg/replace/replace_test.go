@@ -10,25 +10,25 @@ func TestRecords_Replace(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		ds   dicts
+		ds   Dicts
 		args args
 		want string
 	}{
-		{name: "a->b and b->a", ds: dicts{
+		{name: "a->b and b->a", ds: Dicts{
 			Dict{UserDictInput: UserDictInput{Word: "a", Yomi: "b"}},
 			Dict{UserDictInput: UserDictInput{Word: "b", Yomi: "a"}},
 		},
 			args: args{msg: "ab"}, want: "ba",
 		},
 		{
-			name: "a->b and b->a", ds: dicts{
+			name: "a->b and b->a", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "a", Yomi: "b"}},
 				Dict{UserDictInput: UserDictInput{Word: "b", Yomi: "a"}},
 			},
 			args: args{msg: "aaaaabbbbb"}, want: "bbbbbaaaaa",
 		},
 		{
-			name: "a -> b b->c ...", ds: dicts{
+			name: "a -> b b->c ...", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "a", Yomi: "b"}},
 				Dict{UserDictInput: UserDictInput{Word: "b", Yomi: "c"}},
 				Dict{UserDictInput: UserDictInput{Word: "c", Yomi: "d"}},
@@ -59,34 +59,34 @@ func TestRecords_Replace(t *testing.T) {
 			args: args{msg: "a"}, want: "b",
 		},
 		{
-			name: "replace for long", ds: dicts{
+			name: "replace for long", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "a", Yomi: "aa"}},
 				Dict{UserDictInput: UserDictInput{Word: "b", Yomi: "bb"}},
 			},
 			args: args{msg: "ab"}, want: "aabb",
 		},
 		{
-			name: "recursive change", ds: dicts{
+			name: "recursive change", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "ab", Yomi: "ba"}},
 				Dict{UserDictInput: UserDictInput{Word: "b", Yomi: "c"}},
 			},
 			args: args{msg: "ababab"}, want: "bababa",
 		},
 		{
-			name: "japanese char replace", ds: dicts{
+			name: "japanese char replace", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "初音ミク", Yomi: "鏡音リン"}},
 				Dict{UserDictInput: UserDictInput{Word: "b", Yomi: "c"}},
 			},
 			args: args{msg: `こんにちは初音ミクだよ。`}, want: "こんにちは鏡音リンだよ。",
 		},
 		{
-			name: "no replace", ds: dicts{
+			name: "no replace", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "初音ミク", Yomi: "鏡音リン"}},
 			},
 			args: args{msg: `こんにちは。`}, want: `こんにちは。`,
 		},
 		{
-			name: "no records", ds: dicts{},
+			name: "no records", ds: Dicts{},
 			args: args{msg: `こんにちは。`}, want: `こんにちは。`,
 		},
 	}

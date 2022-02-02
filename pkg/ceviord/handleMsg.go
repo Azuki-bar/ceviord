@@ -2,9 +2,7 @@ package ceviord
 
 import (
 	"ceviord/pkg/replace"
-	"crypto"
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -139,7 +137,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	dictCmd := "dict"
 	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), dictCmd+" ") {
-		err := handleDictCmd(m.Content, m.Author.ID, m.GuildID, dictCmd)
+		err := handleDictCmd(m.Content, m.Author.ID, m.GuildID, dictCmd, s)
 		if err != nil {
 			log.Println(fmt.Errorf("dictionaly handler failed `%w`", err))
 			return
@@ -189,15 +187,15 @@ func VoiceStateUpdate(session *discordgo.Session, update discordgo.VoiceStateUpd
 
 }
 
-func RandFileNameGen(m *discordgo.MessageCreate) (string, error) {
-	hash := crypto.MD5.New()
-	defer hash.Reset()
-	t, err := m.Timestamp.Parse()
-	if err != nil {
-		return "", err
+func SendMsg(msg string, session *discordgo.Session) error {
+	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
+	if len([]rune(msg)) > 2000 {
+		return fmt.Errorf("discord message send limitation error")
+	} else if len([]rune(msg)) == 0 {
+		return fmt.Errorf("message len is 0")
 	}
-	hash.Write([]byte(t.String() + m.Content))
-	return hex.EncodeToString(hash.Sum(nil)), nil
+	_, err := session.ChannelMessageSend(ceviord.pickedChannel, msg)
+	return err
 }
 
 func GetMsg(m *discordgo.MessageCreate) string {
