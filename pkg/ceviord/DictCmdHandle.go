@@ -57,10 +57,12 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		}
 		d := replace.Dicts(lists)
 		if d == nil {
+			log.Printf("no dictionary record")
 			return nil
 		}
 		dumpLists := d.Dump()
 		if dumpLists == nil {
+			log.Printf("no dictionary record")
 			return nil
 		}
 		var printsStr []string
