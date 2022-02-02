@@ -153,6 +153,8 @@ something contents.
 		{name: `ほげ\r\nふが`, args: args{msg: "ほげ\r\nふが"}, want: "ほげ\r ふが"},
 		{name: `半角チルダ`, args: args{msg: "あ~"}, want: "あー"},
 		{name: `全角チルダ`, args: args{msg: "あ〜"}, want: "あー"},
+		{name: `custom emoji`, args: args{msg: `<:thinking_vim:1234>`}, want: ""},
+		{name: `custom anime emoji`, args: args{msg: `<a:thinking_vim:1234>`}, want: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

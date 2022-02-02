@@ -143,7 +143,10 @@ func ApplySysDict(msg string) string {
 	for _, d := range dicts {
 		msg = d.before.ReplaceAllString(msg, d.after)
 	}
-	return msg
+	return replaceCustomEmoji(msg)
+}
+func replaceCustomEmoji(msg string) string {
+	return regexp.MustCompile(`<a?:.*:.*>`).ReplaceAllString(msg, "")
 }
 
 func (ds *Dicts) Dump() []string {
