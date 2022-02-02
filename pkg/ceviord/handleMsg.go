@@ -149,7 +149,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	err = rawSpeak(GetMsg(m))
+	err = rawSpeak(GetMsg(m, s))
 	if err != nil {
 		log.Println(err)
 	}
@@ -198,14 +198,20 @@ func SendMsg(msg string, session *discordgo.Session) error {
 	return err
 }
 
-func GetMsg(m *discordgo.MessageCreate) string {
+func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	var name string
 	if m.Member.Nick == "" {
 		name = m.Author.Username
 	} else {
 		name = m.Member.Nick
 	}
-	msg := []rune(name + "。" + replace.ApplySysDict(m.Content))
+	cont, err := m.ContentWithMoreMentionsReplaced(s)
+	if err != nil {
+		log.Println(fmt.Errorf("replace mention failed `%w`", err))
+		return ""
+	}
+	msg := []rune(name + "。" + replace.ApplySysDict(cont))
+
 	ceviord.dictController.SetGuildId(m.GuildID)
 	rawMsg, err := ceviord.dictController.ApplyUserDict(string(msg))
 	if err != nil {
