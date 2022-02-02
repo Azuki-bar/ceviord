@@ -76,6 +76,11 @@ func Test_handleDictCmd(t *testing.T) {
 			args:    args{content: prefix + "dict del 1 s", dictCmd: "dict"},
 			wantErr: false,
 		},
+		{
+			name:    "dict list",
+			args:    args{content: prefix + "dict list", dictCmd: "dict"},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

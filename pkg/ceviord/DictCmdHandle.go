@@ -18,7 +18,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 			cmd = append(cmd, c)
 		}
 	}
-	if len(cmd) < 2 {
+	if len(cmd) < 1 {
 		return fmt.Errorf("dictionaly cmd is not specific")
 	}
 	if ceviord.dictController == nil {
@@ -37,6 +37,9 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 		log.Println("dictionary add succeed")
 		log.Println(cmd)
 	case "del":
+		if len(cmd) < 2 {
+			return fmt.Errorf("delete id is not specification")
+		}
 		id, err := strconv.Atoi(cmd[1])
 		if err != nil {
 			return fmt.Errorf("id specification failed `%w`", err)
@@ -53,6 +56,9 @@ func handleDictCmd(content, authorId, guildId, dictCmd string) error {
 			return fmt.Errorf("dictionnary dump failed `%w`", err)
 		}
 		d := replace.Dicts(lists)
+		if d == nil {
+			return nil
+		}
 		dumpLists := d.Dump()
 		var printsStr []string
 		limit := 2000
