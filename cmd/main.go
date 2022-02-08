@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ceviord/pkg/SpeechGrpc"
 	"ceviord/pkg/ceviord"
 	"ceviord/pkg/replace"
 	"database/sql"
@@ -46,8 +47,10 @@ func main() {
 	ap, err = dg.ApplicationCreate(ap)
 	dg.AddHandler(ceviord.MessageCreate)
 	ceviord.SetNewTalker(ceviord.NewTalker(&conf.Parameters[0]))
+	gTalker, closer := SpeechGrpc.NewTalker("localhost:11111", &conf.Parameters[0])
+	defer closer()
+	ceviord.SetNewTalker(gTalker)
 
-	//db, err := gorm.Open(sqlite.Open(filepath.Join("./", "dictionaries.sqlite3")))
 	db, err := sql.Open("sqlite3", filepath.Join("./", "dictionaries.sqlite3"))
 	if err != nil {
 		log.Println(fmt.Errorf("db connection failed `%w`", err))

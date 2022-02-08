@@ -1,4 +1,4 @@
-package SpeechGen
+package SpeechGrpc
 
 import (
 	"ceviord/pkg/ceviord"
@@ -18,8 +18,9 @@ type cevioWavGrpc struct {
 	param     *ceviord.Parameter
 }
 
-func NewTalker(param *ceviord.Parameter) *cevioWavGrpc {
-	conn, err := grpc.Dial("localhost:1111", grpc.WithTransportCredentials(insecure.NewCredentials()))
+// NewTalker returns wav create connection and connection close function.
+func NewTalker(connTar string, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
+	conn, err := grpc.Dial(connTar, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -28,7 +29,7 @@ func NewTalker(param *ceviord.Parameter) *cevioWavGrpc {
 		ttsClient: client,
 		param:     param,
 	}
-	return c
+	return c, c.grpcConn.Close
 }
 func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -56,10 +57,6 @@ func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 func (c *cevioWavGrpc) ApplyEmotions(param *ceviord.Parameter) error {
 	c.param = param
 	return nil
-}
-
-func (c *cevioWavGrpc) CloseGrpcConn() {
-	defer c.grpcConn.Close()
 }
 
 func typeCast(m map[string]int) map[string]uint32 {
