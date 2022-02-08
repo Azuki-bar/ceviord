@@ -153,11 +153,6 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		log.Println(err)
 	}
-
-	//if vcs.ChannelID == "" {
-	//	s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
-	//}
-
 }
 
 func rawSpeak(text string) error {
@@ -195,6 +190,14 @@ func SendMsg(msg string, session *discordgo.Session) error {
 		return fmt.Errorf("message len is 0")
 	}
 	_, err := session.ChannelMessageSend(ceviord.pickedChannel, msg)
+	return err
+}
+
+func SendEmbedMsg(embed *discordgo.MessageEmbed, session *discordgo.Session) error {
+	if session == nil {
+		return fmt.Errorf("discord go session is nil")
+	}
+	_, err := session.ChannelMessageSendEmbed(ceviord.pickedChannel, embed)
 	return err
 }
 

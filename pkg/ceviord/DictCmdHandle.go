@@ -30,13 +30,20 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 		if len(cmd) < 3 {
 			return fmt.Errorf("dictionaly yomi record not shown")
 		}
-		err := ceviord.dictController.Add(&replace.UserDictInput{Word: stringMax(cmd[1], strLenMax), Yomi: stringMax(strings.Join(cmd[2:], " "), strLenMax),
-			ChangedUserId: authorId, GuildId: guildId})
-		if err != nil {
+		word := stringMax(cmd[1], strLenMax)
+		yomi := stringMax(strings.Join(cmd[2:], " "), strLenMax)
+		if err := ceviord.dictController.Add(&replace.UserDictInput{Word: word, Yomi: yomi, ChangedUserId: authorId, GuildId: guildId}); err != nil {
 			return fmt.Errorf("dict add failed `%w`", err)
 		}
 		log.Println("dictionary add succeed")
-		log.Println(cmd)
+		if err := SendEmbedMsg(
+			&discordgo.MessageEmbed{
+				Title:       "単語追加",
+				Description: "辞書に以下のレコードを追加しました。",
+				Fields:      []*discordgo.MessageEmbedField{{Name: word, Value: yomi}},
+			}, session); err != nil {
+			log.Println(fmt.Errorf("send add msg failed `%w`", err))
+		}
 	case "del":
 		if len(cmd) < 2 {
 			return fmt.Errorf("delete id is not specification")
@@ -45,13 +52,20 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 		if err != nil {
 			return fmt.Errorf("id specification failed `%w`", err)
 		}
-		_, err = ceviord.dictController.Delete(uint(id))
+		d, err := ceviord.dictController.Delete(uint(id))
 		if err != nil {
 			return fmt.Errorf("table delete failed `%w`", err)
 		}
 		log.Println("dictionary delete succeed")
-		log.Println(cmd)
-	case "list":
+		if err = SendEmbedMsg(
+			&discordgo.MessageEmbed{
+				Title:       "単語削除",
+				Description: "辞書から以下のレコードを削除しました。",
+				Fields:      []*discordgo.MessageEmbedField{{Name: d.Word, Value: d.Yomi}},
+			}, session); err != nil {
+			log.Println(fmt.Errorf("send delete msg failed `%w`", err))
+		}
+	case "list", "show":
 		lists, err := ceviord.dictController.Dump()
 		if err != nil {
 			return fmt.Errorf("dictionnary dump failed `%w`", err)
@@ -77,8 +91,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 			if v == "" {
 				continue
 			}
-			err := SendMsg(v, session)
-			if err != nil {
+			if err := SendMsg(v, session); err != nil {
 				return fmt.Errorf("dump dict list failed `%w`", err)
 			}
 		}

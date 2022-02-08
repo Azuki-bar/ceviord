@@ -61,7 +61,8 @@ func (rs *Replacer) SetGuildId(guildId string) { rs.guildId = guildId }
 
 func (rs *Replacer) Add(dict *UserDictInput) error {
 	var findRes []Dict
-	_, err := rs.gorpDb.Select(&findRes, "select * from Dicts where word = ? and guild_id = ? order by updated_at desc;", dict.Word, dict.GuildId)
+	_, err := rs.gorpDb.Select(&findRes, "select * from dicts where word = ? and guild_id = ? order by updated_at desc;",
+		dict.Word, dict.GuildId)
 	if err != nil {
 		return fmt.Errorf("upsert failed `%w`", err)
 	}
@@ -112,7 +113,7 @@ func (rs *Replacer) Delete(dictId uint) (Dict, error) {
 
 func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	var records []Dict
-	_, err := rs.gorpDb.Select(&records, "select * from dicts where guild_id = ?", rs.guildId)
+	_, err := rs.gorpDb.Select(&records, "select (word, yomi) from dicts where guild_id = ? order by length(word) desc, updated_at desc;", rs.guildId)
 	if err != nil {
 		return "", fmt.Errorf("retrieve user dict failed `%w`", err)
 	}
@@ -133,7 +134,7 @@ func ApplySysDict(msg string) string {
 		after  string
 	}
 	dicts := []dict{
-		{before: regexp.MustCompile(`https?://.*`), after: "ゆーあーるえる。"},
+		{before: regexp.MustCompile(`https?://.*`), after: "URL "},
 		{before: regexp.MustCompile("(?s)```(.*)```"), after: "コードブロック"},
 		{before: regexp.MustCompile("\n"), after: " "},
 		{before: regexp.MustCompile("~"), after: "ー"},
@@ -169,14 +170,16 @@ func (ds *Dicts) replace(msg string) string {
 			if cur+befLen > len(rMsg) {
 				continue
 			}
-			if !strings.Contains(strings.ToLower(string(rMsg[cur:cur+befLen])),
-				strings.ToLower(record.Word)) {
+			if !strings.EqualFold(string(rMsg[cur:cur+befLen]), record.Word) {
 				continue
 			}
-			rMsg = append(rMsg[0:cur], []rune(strings.Replace(
-				strings.ToLower(string(rMsg[cur:])),
-				strings.ToLower(record.Word),
-				record.Yomi, 1))...)
+			rMsg = append(rMsg[0:cur],
+				[]rune(strings.Replace(
+					toLowerSubStr(string(rMsg[cur:]), 0, befLen),
+					strings.ToLower(record.Word),
+					record.Yomi,
+					1),
+				)...)
 			cur += len([]rune(record.Yomi))
 			isReplaced = true
 			break
@@ -186,4 +189,13 @@ func (ds *Dicts) replace(msg string) string {
 		}
 	}
 	return string(rMsg)
+}
+
+func toLowerSubStr(s string, start, end int) string {
+	rs := []rune(s)
+	res := rs[0:start]
+	replaced := []rune(strings.ToLower(string(rs[start:end])))
+	res = append(res, replaced...)
+	res = append(res, rs[end:]...)
+	return string(res)
 }
