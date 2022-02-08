@@ -18,7 +18,7 @@ type Ceviord struct {
 	isJoin         bool
 	VoiceConn      *discordgo.VoiceConnection
 	pickedChannel  string
-	cevioWav       *cevioWav
+	cevioWav       CevioWav
 	conf           *Config
 	currentParam   *Parameter
 	mutex          sync.Mutex

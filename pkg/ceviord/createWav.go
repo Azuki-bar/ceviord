@@ -5,6 +5,11 @@ import (
 	"log"
 )
 
+type CevioWav interface {
+	OutputWaveToFile(talkWord, path string) (err error)
+	ApplyEmotions(param *Parameter) (err error)
+}
+
 type cevioWav struct {
 	talker    cevioai.ITalker2V40
 	isSucceed chan error
