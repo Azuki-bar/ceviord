@@ -1,22 +1,17 @@
-package ceviord
+package speechApi
 
 import (
+	"ceviord/pkg/ceviord"
 	"github.com/gotti/cevigo/pkg/cevioai"
-	"log"
 )
 
 type cevioWav struct {
-	talker    cevioai.ITalker2V40
-	isSucceed chan error
+	talker cevioai.ITalker2V40
 }
 
-func NewTalker() *cevioWav {
-	c := cevioWav{isSucceed: make(chan error, 0)}
-	c.talker = cevioai.NewITalker2V40(cevioai.CevioAiApiName)
-	_, err := c.talker.SetCast("さとうささら")
-	if err != nil {
-		log.Fatalln(err)
-	}
+func NewTalker(para *ceviord.Parameter) *cevioWav {
+	c := cevioWav{talker: cevioai.NewITalker2V40(cevioai.CevioAiApiName)}
+	c.ApplyEmotions(para)
 	return &c
 }
 
@@ -25,7 +20,7 @@ func (c *cevioWav) OutputWaveToFile(talkWard string, path string) (err error) {
 	return err
 }
 
-func (c *cevioWav) ApplyEmotions(param *Parameter) error {
+func (c *cevioWav) ApplyEmotions(param *ceviord.Parameter) error {
 	c.talker.SetVolume(param.Volume)
 	c.talker.SetSpeed(param.Speed)
 	c.talker.SetTone(param.Tone)

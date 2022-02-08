@@ -3,6 +3,8 @@ package main
 import (
 	"ceviord/pkg/ceviord"
 	"ceviord/pkg/replace"
+	"ceviord/pkg/speechApi"
+	"ceviord/pkg/speechGrpc"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -45,9 +47,11 @@ func main() {
 	ap.Description = "read text with cevigo"
 	ap, err = dg.ApplicationCreate(ap)
 	dg.AddHandler(ceviord.MessageCreate)
-	ceviord.SetNewTalker(ceviord.NewTalker())
+	ceviord.SetNewTalker(speechApi.NewTalker(&conf.Parameters[0]))
+	gTalker, closer := speechGrpc.NewTalker("localhost:11111", &conf.Parameters[0])
+	defer closer()
+	ceviord.SetNewTalker(gTalker)
 
-	//db, err := gorm.Open(sqlite.Open(filepath.Join("./", "dictionaries.sqlite3")))
 	db, err := sql.Open("sqlite3", filepath.Join("./", "dictionaries.sqlite3"))
 	if err != nil {
 		log.Println(fmt.Errorf("db connection failed `%w`", err))
@@ -63,6 +67,7 @@ func main() {
 
 	// Open the websocket and begin listening.
 	err = dg.Open()
+	defer dg.Close()
 	if err != nil {
 		log.Println(fmt.Errorf("error opening Discord session: `%w`", err))
 	}
@@ -72,7 +77,5 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 
-	// Cleanly close down the Discord session.
-	dg.Close()
 	return
 }

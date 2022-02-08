@@ -18,7 +18,7 @@ type Ceviord struct {
 	isJoin         bool
 	VoiceConn      *discordgo.VoiceConnection
 	pickedChannel  string
-	cevioWav       *cevioWav
+	cevioWav       CevioWav
 	conf           *Config
 	currentParam   *Parameter
 	mutex          sync.Mutex
@@ -40,6 +40,11 @@ type Parameter struct {
 	Emotions  map[string]int `yaml:"emotions"`
 }
 
+type CevioWav interface {
+	OutputWaveToFile(talkWord, path string) (err error)
+	ApplyEmotions(param *Parameter) (err error)
+}
+
 const prefix = "!"
 const strLenMax = 150
 
@@ -51,7 +56,7 @@ var ceviord = Ceviord{
 	mutex:         sync.Mutex{},
 }
 
-func SetNewTalker(wav *cevioWav)             { ceviord.cevioWav = wav }
+func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
 func SetParameters(para *Config)             { ceviord.conf = para }
 
