@@ -6,13 +6,11 @@ import (
 )
 
 type cevioWav struct {
-	talker    cevioai.ITalker2V40
-	isSucceed chan error
+	talker cevioai.ITalker2V40
 }
 
 func NewTalker(para *ceviord.Parameter) *cevioWav {
-	c := cevioWav{isSucceed: make(chan error, 0)}
-	c.talker = cevioai.NewITalker2V40(cevioai.CevioAiApiName)
+	c := cevioWav{talker: cevioai.NewITalker2V40(cevioai.CevioAiApiName)}
 	c.ApplyEmotions(para)
 	return &c
 }
