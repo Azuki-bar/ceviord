@@ -1,4 +1,4 @@
-proto:
+ttsProto:
 	protoc \
 	--go_out=spec/ \
 	--go_opt=Mproto/textToSpeech.proto=. \
