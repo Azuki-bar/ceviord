@@ -5,11 +5,6 @@ import (
 	"github.com/gotti/cevigo/pkg/cevioai"
 )
 
-type CevioWav interface {
-	OutputWaveToFile(talkWord, path string) (err error)
-	ApplyEmotions(param *ceviord.Parameter) (err error)
-}
-
 type cevioWav struct {
 	talker    cevioai.ITalker2V40
 	isSucceed chan error

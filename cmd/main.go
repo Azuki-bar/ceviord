@@ -67,6 +67,7 @@ func main() {
 
 	// Open the websocket and begin listening.
 	err = dg.Open()
+	defer dg.Close()
 	if err != nil {
 		log.Println(fmt.Errorf("error opening Discord session: `%w`", err))
 	}
@@ -76,7 +77,5 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 
-	// Cleanly close down the Discord session.
-	dg.Close()
 	return
 }

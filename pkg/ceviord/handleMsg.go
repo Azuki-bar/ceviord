@@ -40,6 +40,11 @@ type Parameter struct {
 	Emotions  map[string]int `yaml:"emotions"`
 }
 
+type CevioWav interface {
+	OutputWaveToFile(talkWord, path string) (err error)
+	ApplyEmotions(param *Parameter) (err error)
+}
+
 const prefix = "!"
 const strLenMax = 150
 
