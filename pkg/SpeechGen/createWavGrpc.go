@@ -18,13 +18,16 @@ type cevioWavGrpc struct {
 	param     *ceviord.Parameter
 }
 
-func NewTalker() *cevioWavGrpc {
+func NewTalker(param *ceviord.Parameter) *cevioWavGrpc {
 	conn, err := grpc.Dial("localhost:1111", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalln(err)
 	}
 	client := pb.NewTtsClient(conn)
-	c := &cevioWavGrpc{ttsClient: client}
+	c := &cevioWavGrpc{
+		ttsClient: client,
+		param:     param,
+	}
 	return c
 }
 func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
