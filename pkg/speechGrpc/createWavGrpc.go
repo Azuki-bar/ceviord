@@ -1,4 +1,4 @@
-package SpeechGrpc
+package speechGrpc
 
 import (
 	"ceviord/pkg/ceviord"

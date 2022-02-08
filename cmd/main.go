@@ -1,9 +1,10 @@
 package main
 
 import (
-	"ceviord/pkg/SpeechGrpc"
 	"ceviord/pkg/ceviord"
 	"ceviord/pkg/replace"
+	"ceviord/pkg/speechApi"
+	"ceviord/pkg/speechGrpc"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -46,8 +47,8 @@ func main() {
 	ap.Description = "read text with cevigo"
 	ap, err = dg.ApplicationCreate(ap)
 	dg.AddHandler(ceviord.MessageCreate)
-	ceviord.SetNewTalker(ceviord.NewTalker(&conf.Parameters[0]))
-	gTalker, closer := SpeechGrpc.NewTalker("localhost:11111", &conf.Parameters[0])
+	ceviord.SetNewTalker(speechApi.NewTalker(&conf.Parameters[0]))
+	gTalker, closer := speechGrpc.NewTalker("localhost:11111", &conf.Parameters[0])
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
 
