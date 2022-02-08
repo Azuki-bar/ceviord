@@ -61,6 +61,14 @@ func TestRecords_Replace(t *testing.T) {
 		{
 			name: "replace for long", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "a", Yomi: "aa"}},
+				Dict{UserDictInput: UserDictInput{Word: "aa", Yomi: "aaa"}},
+				Dict{UserDictInput: UserDictInput{Word: "aaa", Yomi: "aaaa"}},
+			},
+			args: args{msg: "ab"}, want: "aab",
+		},
+		{
+			name: "replace for long", ds: Dicts{
+				Dict{UserDictInput: UserDictInput{Word: "a", Yomi: "aa"}},
 				Dict{UserDictInput: UserDictInput{Word: "b", Yomi: "bb"}},
 			},
 			args: args{msg: "ab"}, want: "aabb",
@@ -101,6 +109,12 @@ func TestRecords_Replace(t *testing.T) {
 			},
 			args: args{msg: `Github`}, want: `ぎっとはぶ`,
 		},
+		{
+			name: "Github", ds: Dicts{
+				Dict{UserDictInput: UserDictInput{Word: "GITHUB", Yomi: "ぎっとはぶ"}},
+			},
+			args: args{msg: `GithubABC`}, want: `ぎっとはぶABC`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -123,12 +137,12 @@ func TestApplySysDict(t *testing.T) {
 		{
 			name: "URL-http",
 			args: args{msg: "http://example.com"},
-			want: "ゆーあーるえる。",
+			want: "URL ",
 		},
 		{
 			name: "URL-https",
 			args: args{msg: "https://example.com"},
-			want: "ゆーあーるえる。",
+			want: "URL ",
 		},
 		{
 			name: "URL-ftps",
@@ -138,7 +152,7 @@ func TestApplySysDict(t *testing.T) {
 		{
 			name: "name and https url",
 			args: args{msg: `recommend contents -> https://example.com`},
-			want: `recommend contents -> ゆーあーるえる。`,
+			want: `recommend contents -> URL `,
 		},
 		{
 			name: "https url and content",
@@ -146,12 +160,12 @@ func TestApplySysDict(t *testing.T) {
 https://example.com
 
 `},
-			want: `recommend contents ゆーあーるえる。  `,
+			want: `recommend contents URL   `,
 		},
 		{
 			name: "https url and content",
 			args: args{msg: `https://example.com <- recommend contents!`},
-			want: `ゆーあーるえる。`,
+			want: `URL `,
 		},
 		{
 			name: "https url and content",
@@ -159,7 +173,7 @@ https://example.com
 something contents.
 
 `},
-			want: `ゆーあーるえる。 something contents.  `,
+			want: `URL  something contents.  `,
 		},
 		{name: `ほげ\nふが`, args: args{msg: "ほげ\nふが"}, want: `ほげ ふが`},
 		{name: `ほげ\r\nふが`, args: args{msg: "ほげ\r\nふが"}, want: "ほげ\r ふが"},
