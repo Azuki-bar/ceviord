@@ -1,3 +1,10 @@
+build:
+	go build -o ceviord cmd/main.go
+
+test:
+	go test -v ./...
+
+pb: ttsProto
 ttsProto:
 	protoc \
 	--go_out=spec/ \
