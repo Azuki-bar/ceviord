@@ -2,7 +2,6 @@ package ceviord
 
 import (
 	"github.com/gotti/cevigo/pkg/cevioai"
-	"log"
 )
 
 type CevioWav interface {
@@ -15,13 +14,10 @@ type cevioWav struct {
 	isSucceed chan error
 }
 
-func NewTalker() *cevioWav {
+func NewTalker(para *Parameter) *cevioWav {
 	c := cevioWav{isSucceed: make(chan error, 0)}
 	c.talker = cevioai.NewITalker2V40(cevioai.CevioAiApiName)
-	_, err := c.talker.SetCast("さとうささら")
-	if err != nil {
-		log.Fatalln(err)
-	}
+	c.ApplyEmotions(para)
 	return &c
 }
 

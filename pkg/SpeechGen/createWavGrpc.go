@@ -27,7 +27,6 @@ func NewTalker() *cevioWavGrpc {
 	c := &cevioWavGrpc{ttsClient: client}
 	return c
 }
-func (c *cevioWavGrpc) initParam() {}
 func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

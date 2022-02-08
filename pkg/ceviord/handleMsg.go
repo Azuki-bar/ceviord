@@ -51,7 +51,7 @@ var ceviord = Ceviord{
 	mutex:         sync.Mutex{},
 }
 
-func SetNewTalker(wav *cevioWav)             { ceviord.cevioWav = wav }
+func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
 func SetParameters(para *Config)             { ceviord.conf = para }
 

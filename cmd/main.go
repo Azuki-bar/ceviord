@@ -45,7 +45,7 @@ func main() {
 	ap.Description = "read text with cevigo"
 	ap, err = dg.ApplicationCreate(ap)
 	dg.AddHandler(ceviord.MessageCreate)
-	ceviord.SetNewTalker(ceviord.NewTalker())
+	ceviord.SetNewTalker(ceviord.NewTalker(&conf.Parameters[0]))
 
 	//db, err := gorm.Open(sqlite.Open(filepath.Join("./", "dictionaries.sqlite3")))
 	db, err := sql.Open("sqlite3", filepath.Join("./", "dictionaries.sqlite3"))
