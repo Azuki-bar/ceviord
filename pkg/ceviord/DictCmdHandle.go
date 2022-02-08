@@ -57,13 +57,12 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 			return fmt.Errorf("table delete failed `%w`", err)
 		}
 		log.Println("dictionary delete succeed")
-		err = SendEmbedMsg(
+		if err = SendEmbedMsg(
 			&discordgo.MessageEmbed{
 				Title:       "単語削除",
 				Description: "辞書から以下のレコードを削除しました。",
 				Fields:      []*discordgo.MessageEmbedField{{Name: d.Word, Value: d.Yomi}},
-			}, session)
-		if err != nil {
+			}, session); err != nil {
 			log.Println(fmt.Errorf("send delete msg failed `%w`", err))
 		}
 	case "list", "show":
@@ -92,8 +91,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 			if v == "" {
 				continue
 			}
-			err := SendMsg(v, session)
-			if err != nil {
+			if err := SendMsg(v, session); err != nil {
 				return fmt.Errorf("dump dict list failed `%w`", err)
 			}
 		}
