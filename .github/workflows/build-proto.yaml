@@ -4,6 +4,11 @@ defaults:
     working-directory: ./
 on:
   push:
+    paths:
+      - 'proto/*'
+      - '.github/workflows/build-proto.yaml'
+      - 'Makefile'
+      - 'spec/*'
     branches-ignore:
       - main
 jobs:
