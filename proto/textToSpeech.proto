@@ -1,0 +1,21 @@
+syntax = "proto3";
+option go_package = "./spec";
+
+service Tts {
+  rpc CreateWav(CevioTtsRequest) returns (CevioTtsResponse){}
+}
+
+message CevioTtsRequest{
+  string text = 1;
+  string cast = 2;
+  uint32 volume = 3;
+  uint32 speed = 4;
+  uint32 pitch = 5;
+  uint32 alpha = 6;
+  uint32 intro = 7;
+  map<string, uint32>emotions = 8;
+}
+
+message CevioTtsResponse{
+  bytes audio = 1;
+}
