@@ -52,3 +52,16 @@ parameters:
       元気: 0
       怒り: 0
       哀しみ: 100
+  - name: eng-maki-default
+    cast: "弦巻マキ (英)"
+    volume: 50
+    speed: 54
+    tone: 50
+    tonescale: 50
+    alpha: 50
+    emotions:
+      元気: 100
+      怒り: 0
+      落ち着き: 0
+      哀しみ: 0
+      穏やか: 0

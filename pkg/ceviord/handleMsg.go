@@ -52,7 +52,7 @@ type CevioWav interface {
 }
 
 const prefix = "!"
-const strLenMax = 150
+const strLenMax = 300
 
 var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 
@@ -226,6 +226,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	rawMsg, err := ceviord.dictController.ApplyUserDict(string(msg))
 	if err != nil {
 		log.Println("apply user dict failed `%w`", err)
+		return ""
 	}
 	msg = []rune(rawMsg)
 	if len(msg) > strLenMax {

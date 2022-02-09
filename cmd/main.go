@@ -3,7 +3,6 @@ package main
 import (
 	"ceviord/pkg/ceviord"
 	"ceviord/pkg/replace"
-	"ceviord/pkg/speechApi"
 	"ceviord/pkg/speechGrpc"
 	"database/sql"
 	"flag"
@@ -47,15 +46,17 @@ func main() {
 		if conf.Conn.Discord == "" {
 			log.Fatalln("discord token is not provided")
 		}
+	} else {
+		conf.Conn.Discord = disT
 	}
-	conf.Conn.Discord = disT
 	cevioTok, err := parseToken(*cevioTokFlag, "CEVIORD_CEVIO_TOKEN")
 	if err != nil {
 		if conf.Conn.Cevio == "" {
 			log.Fatalln("cevio token is not provided")
 		}
+	} else {
+		conf.Conn.Cevio = cevioTok
 	}
-	conf.Conn.Cevio = cevioTok
 
 	// Create a new Discordgo session
 	dg, err := discordgo.New("Bot " + conf.Conn.Discord)
@@ -70,7 +71,7 @@ func main() {
 	ap.Description = "read text with cevigo"
 	ap, err = dg.ApplicationCreate(ap)
 	dg.AddHandler(ceviord.MessageCreate)
-	ceviord.SetNewTalker(speechApi.NewTalker(&conf.Parameters[0]))
+	//ceviord.SetNewTalker(speechApi.NewTalker(&conf.Parameters[0]))
 	gTalker, closer := speechGrpc.NewTalker(&conf.Conn, &conf.Parameters[0])
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
@@ -92,7 +93,7 @@ func main() {
 	err = dg.Open()
 	defer dg.Close()
 	if err != nil {
-		log.Println(fmt.Errorf("error opening Discord session: `%w`", err))
+		log.Fatalln(fmt.Errorf("error opening Discord session: `%w`", err))
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
