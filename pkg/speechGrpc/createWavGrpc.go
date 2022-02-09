@@ -16,11 +16,12 @@ type cevioWavGrpc struct {
 	ttsClient pb.TtsClient
 	grpcConn  *grpc.ClientConn
 	param     *ceviord.Parameter
+	token     string
 }
 
 // NewTalker returns wav create connection and connection close function.
-func NewTalker(connTar string, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
-	conn, err := grpc.Dial(connTar, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func NewTalker(connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
+	conn, err := grpc.Dial(connConf.CevioEndPoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -28,13 +29,14 @@ func NewTalker(connTar string, param *ceviord.Parameter) (*cevioWavGrpc, func() 
 	c := &cevioWavGrpc{
 		ttsClient: client,
 		param:     param,
+		token:     connConf.Cevio,
 	}
 	return c, c.grpcConn.Close
 }
 func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	res, err := c.ttsClient.CreateWav(ctx, &pb.CevioTtsRequest{
+	req := &pb.CevioTtsRequest{
 		Text:     talkWord,
 		Cast:     c.param.Cast,
 		Volume:   uint32(c.param.Volume),
@@ -43,7 +45,9 @@ func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 		Alpha:    uint32(c.param.Alpha),
 		Intro:    uint32(c.param.Tonescale),
 		Emotions: typeCast(c.param.Emotions),
-	})
+		Token:    c.token,
+	}
+	res, err := c.ttsClient.CreateWav(ctx, req)
 	if err != nil {
 		return fmt.Errorf("grpc execute failed `%w`", err)
 	}

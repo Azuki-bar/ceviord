@@ -26,9 +26,15 @@ type Ceviord struct {
 }
 
 type Config struct {
+	Conn       Conn        `yaml:"conn"`
 	Parameters []Parameter `yaml:"parameters"`
 }
 
+type Conn struct {
+	Discord       string `yaml:"discord"`
+	Cevio         string `yaml:"cevio"`
+	CevioEndPoint string `yaml:"cevioEndPoint"`
+}
 type Parameter struct {
 	Name      string         `yaml:"name"`
 	Cast      string         `yaml:"cast"`
@@ -46,7 +52,7 @@ type CevioWav interface {
 }
 
 const prefix = "!"
-const strLenMax = 150
+const strLenMax = 300
 
 var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 
@@ -183,10 +189,6 @@ func rawSpeak(text string) error {
 	return nil
 }
 
-func VoiceStateUpdate(session *discordgo.Session, update discordgo.VoiceStateUpdate) {
-
-}
-
 func SendMsg(msg string, session *discordgo.Session) error {
 	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
 	if len([]rune(msg)) > 2000 {
@@ -224,6 +226,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	rawMsg, err := ceviord.dictController.ApplyUserDict(string(msg))
 	if err != nil {
 		log.Println("apply user dict failed `%w`", err)
+		return ""
 	}
 	msg = []rune(rawMsg)
 	if len(msg) > strLenMax {
