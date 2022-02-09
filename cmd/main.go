@@ -19,6 +19,15 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func parseToken(flag, envName string) (string, error) {
+	env := os.Getenv(envName)
+	if flag == "" && env == "" {
+		return "", fmt.Errorf("token is not provided")
+	} else if env != "" {
+		return env, nil
+	}
+	return flag, nil
+}
 func main() {
 	conffile, err := ioutil.ReadFile("./parameter.yaml")
 	if err != nil {
@@ -29,14 +38,24 @@ func main() {
 	fmt.Println(conf)
 	ceviord.SetParameters(&conf)
 
-	tok := flag.String("t", "", "discord token")
+	disTokFlag := flag.String("t", "", "discord token")
+	cevioTokFlag := flag.String("c", "", "cevio token")
 	flag.Parse()
-	if *tok == "" && conf.Conn.Discord == "" {
-		log.Fatalln("discord token is not provided")
+
+	disT, err := parseToken(*disTokFlag, "CEVIORD_DISCORD_TOKEN")
+	if err != nil {
+		if conf.Conn.Discord == "" {
+			log.Fatalln("discord token is not provided")
+		}
 	}
-	if *tok != "" {
-		conf.Conn.Discord = *tok
+	conf.Conn.Discord = disT
+	cevioTok, err := parseToken(*cevioTokFlag, "CEVIORD_CEVIO_TOKEN")
+	if err != nil {
+		if conf.Conn.Cevio == "" {
+			log.Fatalln("cevio token is not provided")
+		}
 	}
+	conf.Conn.Cevio = cevioTok
 
 	// Create a new Discordgo session
 	dg, err := discordgo.New("Bot " + conf.Conn.Discord)
