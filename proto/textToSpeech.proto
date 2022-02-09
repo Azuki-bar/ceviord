@@ -14,6 +14,7 @@ message CevioTtsRequest{
   uint32 alpha = 6;
   uint32 intro = 7;
   map<string, uint32>emotions = 8;
+  string token = 9;
 }
 
 message CevioTtsResponse{

@@ -20,19 +20,6 @@ import (
 )
 
 func main() {
-	token := flag.String("t", "", "discord token")
-	flag.Parse()
-	if *token == "" {
-		return
-	}
-
-	// Create a new Discordgo session
-	dg, err := discordgo.New("Bot " + *token)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
 	conffile, err := ioutil.ReadFile("./parameter.yaml")
 	if err != nil {
 		panic(err)
@@ -41,6 +28,23 @@ func main() {
 	yaml.Unmarshal(conffile, &conf)
 	fmt.Println(conf)
 	ceviord.SetParameters(&conf)
+
+	tok := flag.String("t", "", "discord token")
+	flag.Parse()
+	if *tok == "" && conf.Conn.Discord == "" {
+		log.Fatalln("discord token is not provided")
+	}
+	if *tok != "" {
+		conf.Conn.Discord = *tok
+	}
+
+	// Create a new Discordgo session
+	dg, err := discordgo.New("Bot " + conf.Conn.Discord)
+	if err != nil {
+		log.Println("create discord go session failed `%w`", err)
+		return
+	}
+
 	// Create a new Application
 	ap := &discordgo.Application{}
 	ap.Name = "ceviord"
@@ -48,7 +52,7 @@ func main() {
 	ap, err = dg.ApplicationCreate(ap)
 	dg.AddHandler(ceviord.MessageCreate)
 	ceviord.SetNewTalker(speechApi.NewTalker(&conf.Parameters[0]))
-	gTalker, closer := speechGrpc.NewTalker("localhost:11111", &conf.Parameters[0])
+	gTalker, closer := speechGrpc.NewTalker(&conf.Conn, &conf.Parameters[0])
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
 

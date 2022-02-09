@@ -26,9 +26,15 @@ type Ceviord struct {
 }
 
 type Config struct {
+	Conn       Conn        `yaml:"conn"`
 	Parameters []Parameter `yaml:"parameters"`
 }
 
+type Conn struct {
+	Discord       string `yaml:"discord"`
+	Cevio         string `yaml:"cevio"`
+	CevioEndPoint string `yaml:"cevioEndPoint"`
+}
 type Parameter struct {
 	Name      string         `yaml:"name"`
 	Cast      string         `yaml:"cast"`
@@ -181,10 +187,6 @@ func rawSpeak(text string) error {
 	}
 	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
 	return nil
-}
-
-func VoiceStateUpdate(session *discordgo.Session, update discordgo.VoiceStateUpdate) {
-
 }
 
 func SendMsg(msg string, session *discordgo.Session) error {
