@@ -90,8 +90,8 @@ func (rs *Replacer) Add(dict *UserDictInput) error {
 		updateDict := findRes[0]
 		updateDict.UpdatedAt = time.Now()
 		updateDict.UserDictInput = *dict
-		i, err := rs.gorpDb.Update([]Dict{updateDict})
-		if i != 0 {
+		i, err := rs.gorpDb.Update(&updateDict)
+		if i == 0 {
 			return fmt.Errorf("no update execute")
 		}
 		if err != nil {
