@@ -1,12 +1,12 @@
 package main
 
 import (
-	"ceviord/pkg/ceviord"
-	"ceviord/pkg/replace"
-	"ceviord/pkg/speechGrpc"
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"github.com/azuki-bar/ceviord/pkg/replace"
+	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
 	"io/ioutil"
 	"log"
 	"os"

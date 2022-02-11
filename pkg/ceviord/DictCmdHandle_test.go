@@ -1,7 +1,7 @@
 package ceviord
 
 import (
-	"ceviord/pkg/replace"
+	"github.com/azuki-bar/ceviord/pkg/replace"
 	"testing"
 )
 
