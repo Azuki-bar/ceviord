@@ -44,7 +44,7 @@ func handleDictCmd(content, authorId, guildId, dictCmd string, session *discordg
 			}, session); err != nil {
 			log.Println(fmt.Errorf("send add msg failed `%w`", err))
 		}
-	case "del":
+	case "del", "delete":
 		if len(cmd) < 2 {
 			return fmt.Errorf("delete id is not specification")
 		}
