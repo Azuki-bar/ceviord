@@ -1,10 +1,10 @@
 package speechGrpc
 
 import (
-	"ceviord/pkg/ceviord"
-	pb "ceviord/spec"
 	"context"
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	pb "github.com/azuki-bar/ceviord/spec"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"

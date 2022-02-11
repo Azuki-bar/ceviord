@@ -1,7 +1,7 @@
 package speechApi
 
 import (
-	"ceviord/pkg/ceviord"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/gotti/cevigo/pkg/cevioai"
 )
 

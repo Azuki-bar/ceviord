@@ -1,8 +1,8 @@
 package ceviord
 
 import (
-	"ceviord/pkg/replace"
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"strconv"

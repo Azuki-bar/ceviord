@@ -1,9 +1,9 @@
 package ceviord
 
 import (
-	"ceviord/pkg/replace"
 	"crypto/rand"
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/replace"
 	"log"
 	"os"
 	"path/filepath"
