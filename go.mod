@@ -17,7 +17,7 @@ require (
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.0 // indirect
-	github.com/gorilla/websocket v1.4.0 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/lib/pq v1.10.4 // indirect
 	github.com/poy/onpar v1.1.2 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
