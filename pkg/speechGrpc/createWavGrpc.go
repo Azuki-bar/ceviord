@@ -15,7 +15,7 @@ import (
 type cevioWavGrpc struct {
 	ttsClient pb.TtsClient
 	grpcConn  *grpc.ClientConn
-	param     *ceviord.Parameter
+	param     ceviord.Parameter
 	token     string
 }
 
@@ -28,7 +28,7 @@ func NewTalker(connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc,
 	client := pb.NewTtsClient(conn)
 	c := &cevioWavGrpc{
 		ttsClient: client,
-		param:     param,
+		param:     *param,
 		token:     connConf.Cevio,
 	}
 	return c, c.grpcConn.Close
@@ -59,7 +59,7 @@ func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 	return err
 }
 func (c *cevioWavGrpc) ApplyEmotions(param *ceviord.Parameter) error {
-	c.param = param
+	c.param = *param
 	return nil
 }
 
