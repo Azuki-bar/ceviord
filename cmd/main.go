@@ -35,7 +35,7 @@ func main() {
 	var conf ceviord.Config
 	yaml.Unmarshal(conffile, &conf)
 	fmt.Println(conf)
-	ceviord.SetParameters(&conf)
+	ceviord.SetConf(&conf)
 
 	disTokFlag := flag.String("t", "", "discord token")
 	cevioTokFlag := flag.String("c", "", "cevio token")

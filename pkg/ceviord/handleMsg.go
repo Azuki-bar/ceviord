@@ -64,7 +64,7 @@ var ceviord = Ceviord{
 
 func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
-func SetParameters(para *Config)             { ceviord.conf = para }
+func SetConf(conf *Config)                   { ceviord.conf = conf; ceviord.currentParam = &conf.Parameters[0] }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
@@ -73,6 +73,10 @@ func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.C
 		return nil
 	}
 	vcs, err := s.State.VoiceState(m.GuildID, m.Author.ID)
+	if err != nil {
+		log.Println(fmt.Errorf("find joinedVc err occurred `%w`", err))
+		return nil
+	}
 	for _, c := range st {
 		switch c.Type {
 		case discordgo.ChannelTypeGuildVoice:
@@ -111,14 +115,25 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if strings.TrimPrefix(m.Content, prefix) == "sasara" && !isJoined {
-		ceviord.VoiceConn, err = s.ChannelVoiceJoin(m.GuildID, FindJoinedVC(s, m).ID, false, false)
+		vc := FindJoinedVC(s, m)
+		if vc == nil {
+			return
+		}
+		ceviord.VoiceConn, err = s.ChannelVoiceJoin(m.GuildID, vc.ID, false, false)
 		if err != nil {
 			log.Println(fmt.Errorf("joining: %w", err))
 		}
 		ceviord.pickedChannel = m.ChannelID
 	}
 	if strings.TrimPrefix(m.Content, prefix) == "bye" && isJoined {
-		defer ceviord.VoiceConn.Close()
+		if ceviord.VoiceConn == nil {
+			return
+		}
+		defer func() {
+			if ceviord.VoiceConn != nil {
+				ceviord.VoiceConn.Close()
+			}
+		}()
 		err = ceviord.VoiceConn.Speaking(false)
 		if err != nil {
 			log.Println(fmt.Errorf("speaking falsing: %w", err))
@@ -133,7 +148,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	fmt.Println(strings.TrimPrefix(m.Content, prefix))
 	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), "change ") {
 		for _, p := range ceviord.conf.Parameters {
-			got := strings.TrimPrefix(m.Content, prefix+"change ")
+			got := strings.TrimSpace(strings.TrimPrefix(m.Content, prefix+"change"))
 			if got == p.Name {
 				ceviord.currentParam = &p
 				ceviord.cevioWav.ApplyEmotions(ceviord.currentParam)
