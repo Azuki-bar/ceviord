@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 
 	"github.com/bwmarrin/discordgo"
 	"layeh.com/gopus"
@@ -136,6 +137,9 @@ func ReceivePCM(v *discordgo.VoiceConnection, c chan *discordgo.Packet) {
 		c <- p
 	}
 }
+func killCmdSafely(cmd *exec.Cmd) error {
+	return syscall.Kill(-cmd.Process.Pid, syscall.SYS_KILL)
+}
 
 // PlayAudioFile will play the given filename to the already connected
 // Discord voice server/channel.  voice websocket and udp socket
@@ -144,6 +148,7 @@ func PlayAudioFile(v *discordgo.VoiceConnection, filename string, stop <-chan bo
 
 	// Create a shell command "object" to run.
 	run := exec.Command("ffmpeg", "-i", filename, "-f", "s16le", "-ar", strconv.Itoa(frameRate), "-ac", strconv.Itoa(channels), "pipe:1")
+	run.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	ffmpegout, err := run.StdoutPipe()
 	if err != nil {
 		OnError("StdoutPipe Error", err)
@@ -160,12 +165,12 @@ func PlayAudioFile(v *discordgo.VoiceConnection, filename string, stop <-chan bo
 	}
 
 	// prevent memory leak from residual ffmpeg streams
-	defer run.Process.Kill()
+	defer killCmdSafely(run)
 
 	//when stop is sent, kill ffmpeg
 	go func() {
 		<-stop
-		err = run.Process.Kill()
+		killCmdSafely(run)
 	}()
 
 	// Send "speaking" packet over the voice websocket
@@ -185,10 +190,10 @@ func PlayAudioFile(v *discordgo.VoiceConnection, filename string, stop <-chan bo
 	send := make(chan []int16, 2)
 	defer close(send)
 
-	close := make(chan bool)
+	cClose := make(chan bool)
 	go func() {
 		SendPCM(v, send)
-		close <- true
+		cClose <- true
 	}()
 
 	for {
@@ -206,7 +211,7 @@ func PlayAudioFile(v *discordgo.VoiceConnection, filename string, stop <-chan bo
 		// Send received PCM to the sendPCM channel
 		select {
 		case send <- audiobuf:
-		case <-close:
+		case <-cClose:
 			return
 		}
 	}
