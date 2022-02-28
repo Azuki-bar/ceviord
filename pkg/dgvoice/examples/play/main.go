@@ -48,7 +48,7 @@ func main() {
 	files, _ := ioutil.ReadDir(*Folder)
 	for _, f := range files {
 		fmt.Println("PlayAudioFile:", f.Name())
-		discord.UpdateStatus(0, f.Name())
+		discord.UpdateGameStatus(0, f.Name())
 
 		dgvoice.PlayAudioFile(dgv, fmt.Sprintf("%s/%s", *Folder, f.Name()), make(chan bool))
 	}
