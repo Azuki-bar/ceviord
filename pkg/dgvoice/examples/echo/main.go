@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/bwmarrin/dgvoice"
+	"github.com/azuki-bar/ceviord/pkg/dgvoice"
 	"github.com/bwmarrin/discordgo"
 )
 
