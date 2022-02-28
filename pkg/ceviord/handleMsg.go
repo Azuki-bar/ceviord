@@ -3,6 +3,7 @@ package ceviord
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/dgvoice"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"log"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
 )
 
