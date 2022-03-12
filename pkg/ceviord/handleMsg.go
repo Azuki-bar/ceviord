@@ -111,7 +111,7 @@ func parseUserCmd(msg string) (userMainCmd, error) {
 	if len(rawCmd) < 2 {
 		return mainCmd, nil
 	}
-	if err := mainCmd.parse(rawCmd[1:]); err != nil {
+	if err := mainCmd.parse(rawCmd); err != nil {
 		return nil, err
 	}
 	return mainCmd, nil
@@ -158,16 +158,6 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	cmd, err := parseUserCmd(strings.TrimPrefix(msg.Content, prefix))
 	if err = cmd.handle(sess, msg); err != nil {
 		log.Println(fmt.Errorf("error occured in cmd handler %T", cmd))
-	}
-
-	dictCmd := "dict"
-	if strings.HasPrefix(strings.TrimPrefix(msg.Content, prefix), dictCmd+" ") {
-		err := handleDictCmd(msg.Content, msg.Author.ID, msg.GuildID, dictCmd, sess)
-		if err != nil {
-			log.Println(fmt.Errorf("dictionaly handler failed `%w`", err))
-			return
-		}
-		return
 	}
 }
 
