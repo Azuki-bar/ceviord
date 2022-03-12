@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-gorp/gorp"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"regexp"
