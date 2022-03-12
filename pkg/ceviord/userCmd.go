@@ -12,6 +12,7 @@ type userMainCmd interface {
 	parse(cmd []string) error
 	handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error
 }
+
 type change struct {
 	changeTo string
 }
@@ -41,7 +42,7 @@ func (c *change) parse(cmds []string) error {
 
 type sasara struct{}
 
-func (_ *sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
+func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
 	if ceviord.isJoin {
 		return fmt.Errorf("sasara is already joined\n")
 	}
@@ -59,12 +60,12 @@ func (_ *sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) e
 	ceviord.pickedChannel = msg.ChannelID
 	return nil
 }
-func (s *sasara) parse(_ []string) error { return nil }
+func (*sasara) parse(_ []string) error { return nil }
 
 type bye struct{}
 
-func (b *bye) parse(_ []string) error { return nil }
-func (b *bye) handle(_ *discordgo.Session, _ *discordgo.MessageCreate) error {
+func (*bye) parse(_ []string) error { return nil }
+func (*bye) handle(_ *discordgo.Session, _ *discordgo.MessageCreate) error {
 	if !ceviord.isJoin || ceviord.VoiceConn == nil {
 		return fmt.Errorf("ceviord is already disconnected\n")
 	}
@@ -225,8 +226,6 @@ func (d *dictList) parse(cmd []string) error {
 		return nil
 	}
 	switch len(cmd[1:]) {
-	case 0:
-		log.Println("something failed")
 	case 1:
 		d.isLatest = true
 		if cmd[1] == "all" {
