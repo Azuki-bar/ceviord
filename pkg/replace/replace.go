@@ -122,9 +122,9 @@ func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	d := Dicts(records)
 	return d.replace(msg), nil
 }
-func (rs *Replacer) Dump(limits uint) ([]Dict, error) {
+func (rs *Replacer) Dump(limit uint) ([]Dict, error) {
 	var dictList []Dict
-	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? order by updated_at desc limits ?", rs.guildId, limits)
+	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? order by updated_at desc limit ?", rs.guildId, limit)
 	if err != nil {
 		return nil, fmt.Errorf("dump dict error `%w`", err)
 	}
@@ -132,7 +132,7 @@ func (rs *Replacer) Dump(limits uint) ([]Dict, error) {
 }
 func (rs *Replacer) DumpAtoB(from, to uint) ([]Dict, error) {
 	var dictList []Dict
-	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? and id >=? and id <=? order by id", from, to)
+	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? and id >=? and id <=? order by id", rs.guildId, from, to)
 	if err != nil {
 		return nil, fmt.Errorf("dump dict error `%w`", err)
 	}

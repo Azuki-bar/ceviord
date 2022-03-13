@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -91,7 +92,7 @@ func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.C
 }
 
 func parseUserCmd(msg string) (userMainCmd, error) {
-	rawCmd := strings.Split(msg, " ")
+	rawCmd := regexp.MustCompile(`[\s　]+`).Split(msg, -1)
 	if len(rawCmd) < 1 {
 		return nil, fmt.Errorf("parsing user cmd failed. user msg is `%s`\n", msg)
 	}
@@ -155,9 +156,14 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 		return
 	}
 	ceviord.isJoin = isJoined
+	ceviord.dictController.SetGuildId(msg.GuildID)
 	cmd, err := parseUserCmd(strings.TrimPrefix(msg.Content, prefix))
+	if err != nil {
+		log.Println(fmt.Errorf("error occured in user cmd parser `%w`", err))
+		return
+	}
 	if err = cmd.handle(sess, msg); err != nil {
-		log.Println(fmt.Errorf("error occured in cmd handler %T", cmd))
+		log.Println(fmt.Errorf("error occured in cmd handler %T; `%w`", cmd, err))
 	}
 }
 
@@ -223,10 +229,5 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 		log.Println("apply user dict failed `%w`", err)
 		return ""
 	}
-	msg = []rune(rawMsg)
-	if len(msg) > strLenMax {
-		return string(msg[0:strLenMax])
-	} else {
-		return string(msg)
-	}
+	return stringMax(rawMsg, strLenMax)
 }

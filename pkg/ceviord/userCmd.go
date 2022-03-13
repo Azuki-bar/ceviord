@@ -91,6 +91,9 @@ type dict struct {
 }
 
 func (d *dict) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
+	if d.sub == nil {
+		return fmt.Errorf("dict sub cmd not provided")
+	}
 	return d.sub.handle(sess, msg)
 }
 
@@ -273,12 +276,12 @@ func (d *dictList) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) e
 		return fmt.Errorf("dictionary dump failed `%w`", err)
 	}
 	if lists == nil {
-		log.Println("no dictionary record")
-		return nil
+		return fmt.Errorf("fetch db records failed")
 	}
 	dicts := replace.Dicts(lists)
-	printsStr := make([]string, 0)
+	printsStr := make([]string, 1)
 	cur := 0
+	printsStr[cur] = d.getOptStr()
 	for _, s := range dicts.GetStringSlice() {
 		if len([]rune(printsStr[cur]+s+"\n")) >= discordPostLenLimit {
 			printsStr = append(printsStr, s+"\n")
@@ -295,6 +298,17 @@ func (d *dictList) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) e
 		}
 	}
 	return nil
+}
+func (d *dictList) getOptStr() string {
+	if d.isLatest {
+		if d.limit == 1<<32-1 {
+			return "全ての単語辞書を表示します。\n"
+		} else {
+			return fmt.Sprintf("直近の%dレコードを表示します\n", d.limit)
+		}
+	} else {
+		return fmt.Sprintf("IDが%dから%dのレコードを表示します。\n", d.from, d.to)
+	}
 }
 
 func stringMax(msg string, max int) string {
