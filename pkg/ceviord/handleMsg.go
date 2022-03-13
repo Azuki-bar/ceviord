@@ -106,11 +106,10 @@ func parseUserCmd(msg string) (userMainCmd, error) {
 		mainCmd = new(dict)
 	case "change":
 		mainCmd = new(change)
+	case "help", "man":
+		mainCmd = new(help)
 	default:
 		return nil, fmt.Errorf("unknown user cmd `%s` \n", rawCmd[0])
-	}
-	if len(rawCmd) < 2 {
-		return mainCmd, nil
 	}
 	if err := mainCmd.parse(rawCmd); err != nil {
 		return nil, err
