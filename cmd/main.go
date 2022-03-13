@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -59,7 +58,7 @@ func main() {
 	}
 
 	// Create a new Discordgo session
-	dg, err := discordgo.New("Bot " + conf.Conn.Discord)
+	dgSess, err := discordgo.New("Bot " + conf.Conn.Discord)
 	if err != nil {
 		log.Println("create discord go session failed `%w`", err)
 		return
@@ -69,14 +68,14 @@ func main() {
 	ap := &discordgo.Application{}
 	ap.Name = "ceviord"
 	ap.Description = "read text with cevigo"
-	ap, err = dg.ApplicationCreate(ap)
-	dg.AddHandler(ceviord.MessageCreate)
+	ap, err = dgSess.ApplicationCreate(ap)
+	dgSess.AddHandler(ceviord.MessageCreate)
 	//ceviord.SetNewTalker(speechApi.NewTalker(&conf.Parameters[0]))
 	gTalker, closer := speechGrpc.NewTalker(&conf.Conn, &conf.Parameters[0])
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
 
-	db, err := sql.Open("sqlite3", filepath.Join("./", "dictionaries.sqlite3"))
+	db, err := sql.Open(conf.Conn.DriverName, conf.Conn.Dsn)
 	if err != nil {
 		log.Println(fmt.Errorf("db connection failed `%w`", err))
 		return
@@ -90,8 +89,8 @@ func main() {
 	ceviord.SetDbController(r)
 
 	// Open the websocket and begin listening.
-	err = dg.Open()
-	defer dg.Close()
+	err = dgSess.Open()
+	defer dgSess.Close()
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error opening Discord session: `%w`", err))
 	}

@@ -2,6 +2,8 @@ conn:
   discord: ""
   cevio: ""
   cevioEndPoint: ""
+  dsn: "./dictionary.sqlite3"
+  driverName: "sqlite3"
 
 parameters:
   - name: sasara-default

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-gorp/gorp"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"regexp"
@@ -35,7 +36,8 @@ type DbController interface {
 	Delete(dictId uint) (Dict, error)
 	ApplyUserDict(msg string) (string, error)
 	SetGuildId(guildId string)
-	Dump() ([]Dict, error)
+	Dump(limits uint) ([]Dict, error)
+	DumpAtoB(from, to uint) ([]Dict, error)
 }
 
 func initDb(db *sql.DB) (*gorp.DbMap, error) {
@@ -120,14 +122,23 @@ func (rs *Replacer) ApplyUserDict(msg string) (string, error) {
 	d := Dicts(records)
 	return d.replace(msg), nil
 }
-func (rs *Replacer) Dump() ([]Dict, error) {
+func (rs *Replacer) Dump(limit uint) ([]Dict, error) {
 	var dictList []Dict
-	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? order by updated_at desc", rs.guildId)
+	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? order by updated_at desc limit ?", rs.guildId, limit)
 	if err != nil {
 		return nil, fmt.Errorf("dump dict error `%w`", err)
 	}
 	return dictList, nil
 }
+func (rs *Replacer) DumpAtoB(from, to uint) ([]Dict, error) {
+	var dictList []Dict
+	_, err := rs.gorpDb.Select(&dictList, "select * from dicts where guild_id = ? and id >=? and id <=? order by id", rs.guildId, from, to)
+	if err != nil {
+		return nil, fmt.Errorf("dump dict error `%w`", err)
+	}
+	return dictList, nil
+}
+
 func ApplySysDict(msg string) string {
 	type dict struct {
 		before *regexp.Regexp
@@ -150,7 +161,7 @@ func replaceCustomEmoji(msg string) string {
 	return regexp.MustCompile(`<a?:.*:.*>`).ReplaceAllString(msg, "")
 }
 
-func (ds *Dicts) Dump() []string {
+func (ds *Dicts) GetStringSlice() []string {
 	var res []string
 	res = append(res, "ID\t単語\tよみ", "---------------------------")
 	for _, v := range *ds {

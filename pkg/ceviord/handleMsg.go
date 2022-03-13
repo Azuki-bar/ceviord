@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -34,6 +35,8 @@ type Conn struct {
 	Discord       string `yaml:"discord"`
 	Cevio         string `yaml:"cevio"`
 	CevioEndPoint string `yaml:"cevioEndPoint"`
+	Dsn           string `yaml:"dsn"`
+	DriverName    string `yaml:"driverName"`
 }
 type Parameter struct {
 	Name      string         `yaml:"name"`
@@ -88,19 +91,46 @@ func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.C
 	return nil
 }
 
+func parseUserCmd(msg string) (userMainCmd, error) {
+	rawCmd := regexp.MustCompile(`[\s　]+`).Split(msg, -1)
+	if len(rawCmd) < 1 {
+		return nil, fmt.Errorf("parsing user cmd failed. user msg is `%s`\n", msg)
+	}
+	var mainCmd userMainCmd
+	switch rawCmd[0] {
+	case "sasara":
+		mainCmd = new(sasara)
+	case "bye":
+		mainCmd = new(bye)
+	case "dict":
+		mainCmd = new(dict)
+	case "change":
+		mainCmd = new(change)
+	default:
+		return nil, fmt.Errorf("unknown user cmd `%s` \n", rawCmd[0])
+	}
+	if len(rawCmd) < 2 {
+		return mainCmd, nil
+	}
+	if err := mainCmd.parse(rawCmd); err != nil {
+		return nil, err
+	}
+	return mainCmd, nil
+}
+
 // MessageCreate will be called (due to AddHandler above) every time a new
 // message is created on any channel that the authenticated bot has access to.
-func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 
 	// Ignore all messages created by the bot itself
 	// This isn't required in this specific example, but it's a good practice.
-	if m.Author.ID == s.State.User.ID {
+	if msg.Author.ID == sess.State.User.ID {
 		return
 	}
-	if m.Author.Bot {
+	if msg.Author.Bot {
 		return
 	}
-	vcs, err := s.State.VoiceState(m.GuildID, s.State.User.ID)
+	vcs, err := sess.State.VoiceState(msg.GuildID, sess.State.User.ID)
 	if err != nil {
 		log.Println(fmt.Errorf("%w", err))
 	}
@@ -114,70 +144,26 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		isJoined = true
 	}
 
-	if strings.TrimPrefix(m.Content, prefix) == "sasara" && !isJoined {
-		vc := FindJoinedVC(s, m)
-		if vc == nil {
+	if !strings.HasPrefix(msg.Content, prefix) {
+		if !(isJoined && msg.ChannelID == ceviord.pickedChannel) {
 			return
 		}
-		ceviord.VoiceConn, err = s.ChannelVoiceJoin(m.GuildID, vc.ID, false, false)
+
+		err = rawSpeak(GetMsg(msg, sess))
 		if err != nil {
-			log.Println(fmt.Errorf("joining: %w", err))
-		}
-		ceviord.pickedChannel = m.ChannelID
-	}
-	if strings.TrimPrefix(m.Content, prefix) == "bye" && isJoined {
-		if ceviord.VoiceConn == nil {
-			return
-		}
-		defer func() {
-			if ceviord.VoiceConn != nil {
-				ceviord.VoiceConn.Close()
-			}
-		}()
-		err = ceviord.VoiceConn.Speaking(false)
-		if err != nil {
-			log.Println(fmt.Errorf("speaking falsing: %w", err))
-		}
-		err = ceviord.VoiceConn.Disconnect()
-		if err != nil {
-			log.Println(fmt.Errorf("disconnecting: %w", err))
+			log.Println(err)
 		}
 		return
 	}
-
-	fmt.Println(strings.TrimPrefix(m.Content, prefix))
-	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), "change ") {
-		for _, p := range ceviord.conf.Parameters {
-			got := strings.TrimSpace(strings.TrimPrefix(m.Content, prefix+"change"))
-			if got == p.Name {
-				ceviord.currentParam = &p
-				ceviord.cevioWav.ApplyEmotions(ceviord.currentParam)
-				err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました", p.Name))
-				if err != nil {
-					log.Println(fmt.Errorf("speaking about paramerter setting: %w", err))
-				}
-			}
-		}
-		return
-	}
-
-	dictCmd := "dict"
-	if strings.HasPrefix(strings.TrimPrefix(m.Content, prefix), dictCmd+" ") {
-		err := handleDictCmd(m.Content, m.Author.ID, m.GuildID, dictCmd, s)
-		if err != nil {
-			log.Println(fmt.Errorf("dictionaly handler failed `%w`", err))
-			return
-		}
-		return
-	}
-
-	if !(isJoined && m.ChannelID == ceviord.pickedChannel) {
-		return
-	}
-
-	err = rawSpeak(GetMsg(m, s))
+	ceviord.isJoin = isJoined
+	ceviord.dictController.SetGuildId(msg.GuildID)
+	cmd, err := parseUserCmd(strings.TrimPrefix(msg.Content, prefix))
 	if err != nil {
-		log.Println(err)
+		log.Println(fmt.Errorf("error occured in user cmd parser `%w`", err))
+		return
+	}
+	if err = cmd.handle(sess, msg); err != nil {
+		log.Println(fmt.Errorf("error occured in cmd handler %T; `%w`", cmd, err))
 	}
 }
 
@@ -243,10 +229,5 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 		log.Println("apply user dict failed `%w`", err)
 		return ""
 	}
-	msg = []rune(rawMsg)
-	if len(msg) > strLenMax {
-		return string(msg[0:strLenMax])
-	} else {
-		return string(msg)
-	}
+	return stringMax(rawMsg, strLenMax)
 }
