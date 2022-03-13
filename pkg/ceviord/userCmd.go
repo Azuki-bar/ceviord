@@ -311,6 +311,18 @@ func (d *dictList) getOptStr() string {
 	}
 }
 
+type help struct{}
+
+func (*help) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) error {
+	return SendEmbedMsg(&discordgo.MessageEmbed{
+		Title:       "コマンドリファレンス",
+		Description: "コマンドは以下のページを参考に入力してください。",
+		URL:         "https://github.com/Azuki-bar/ceviord/blob/main/doc/cmd.md",
+	}, sess)
+}
+
+func (*help) parse(_ []string) error { return nil }
+
 func stringMax(msg string, max int) string {
 	lenMsg := len([]rune(msg))
 	if lenMsg > max {
