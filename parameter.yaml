@@ -55,7 +55,7 @@ parameters:
       怒り: 0
       哀しみ: 100
   - name: jpn-maki-default
-    cast: "弦巻マキ (英)"
+    cast: "弦巻マキ (日)"
     volume: 50
     speed: 54
     tone: 50
