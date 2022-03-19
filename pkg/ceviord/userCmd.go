@@ -285,6 +285,7 @@ func (d *dictList) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) e
 	for _, s := range dicts.GetStringSlice() {
 		if len([]rune(printsStr[cur]+s+"\n")) >= discordPostLenLimit {
 			printsStr = append(printsStr, s+"\n")
+			cur++
 		} else {
 			printsStr[cur] += s + "\n"
 		}
@@ -316,7 +317,7 @@ type help struct{}
 func (*help) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) error {
 	return SendEmbedMsg(&discordgo.MessageEmbed{
 		Title:       "コマンドリファレンス",
-		Description: "コマンドは以下のページを参考に入力してください。",
+		Description: "コマンドはこのページを参考に入力してください。",
 		URL:         "https://github.com/Azuki-bar/ceviord/blob/main/doc/cmd.md",
 	}, sess)
 }
