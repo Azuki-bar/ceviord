@@ -29,7 +29,7 @@ func parseToken(flag, envName string) (string, error) {
 func main() {
 	conffile, err := ioutil.ReadFile("./parameter.yaml")
 	if err != nil {
-		panic(err)
+		log.Fatalln(fmt.Errorf("load config file failed `%w`", err))
 	}
 	var conf ceviord.Config
 	yaml.Unmarshal(conffile, &conf)
