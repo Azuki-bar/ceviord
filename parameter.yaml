@@ -80,3 +80,15 @@ parameters:
       落ち着き: 0
       哀しみ: 0
       穏やか: 0
+  - name: one-default
+    cast: "OИE"
+    volume: 50
+    speed: 54
+    tone: 50
+    tonescale: 50
+    alpha: 50
+    emotions:
+      Bright: 0
+      Normal: 0
+      Strong: 0
+      Dark: 0
