@@ -32,3 +32,4 @@ go.work
 
 *.sqlite3
 parameter.yaml
+auth.yaml

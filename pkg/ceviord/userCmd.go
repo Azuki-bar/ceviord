@@ -18,7 +18,7 @@ type change struct {
 }
 
 func (c *change) handle(_ *discordgo.Session, _ *discordgo.MessageCreate) error {
-	for _, p := range ceviord.conf.Parameters {
+	for _, p := range ceviord.param.Parameters {
 		if c.changeTo == p.Name {
 			ceviord.currentParam = &p
 			if err := ceviord.cevioWav.ApplyEmotions(ceviord.currentParam); err != nil {

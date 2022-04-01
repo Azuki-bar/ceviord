@@ -20,23 +20,29 @@ type Ceviord struct {
 	VoiceConn      *discordgo.VoiceConnection
 	pickedChannel  string
 	cevioWav       CevioWav
-	conf           *Config
+	param          *Param
+	Auth           *Auth
 	currentParam   *Parameter
 	mutex          sync.Mutex
 	dictController replace.DbController
 }
 
-type Config struct {
-	Conn       Conn        `yaml:"conn"`
+type Param struct {
 	Parameters []Parameter `yaml:"parameters"`
 }
 
+type Auth struct {
+	CeviordConn Conn `yaml:"conn"`
+}
+
 type Conn struct {
-	Discord       string `yaml:"discord"`
-	Cevio         string `yaml:"cevio"`
-	CevioEndPoint string `yaml:"cevioEndPoint"`
-	Dsn           string `yaml:"dsn"`
-	DriverName    string `yaml:"driverName"`
+	Discord string `yaml:"discord"`
+	Cevio   struct {
+		Token    string `yaml:"cevioToken"`
+		EndPoint string `yaml:"cevioEndPoint"`
+	} `yaml:",inline"`
+	Dsn        string `yaml:"dsn"`
+	DriverName string `yaml:"driverName"`
 }
 type Parameter struct {
 	Name      string         `yaml:"name"`
@@ -67,7 +73,7 @@ var ceviord = Ceviord{
 
 func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
-func SetConf(conf *Config)                   { ceviord.conf = conf; ceviord.currentParam = &conf.Parameters[0] }
+func SetParam(param *Param)                  { ceviord.param = param; ceviord.currentParam = &param.Parameters[0] }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)

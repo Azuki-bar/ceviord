@@ -21,7 +21,7 @@ type cevioWavGrpc struct {
 
 // NewTalker returns wav create connection and connection close function.
 func NewTalker(connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
-	conn, err := grpc.Dial(connConf.CevioEndPoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(connConf.Cevio.EndPoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -29,7 +29,7 @@ func NewTalker(connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc,
 	c := &cevioWavGrpc{
 		ttsClient: client,
 		param:     *param,
-		token:     connConf.Cevio,
+		token:     connConf.Cevio.Token,
 	}
 	return c, c.grpcConn.Close
 }
