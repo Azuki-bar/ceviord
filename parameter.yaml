@@ -89,6 +89,6 @@ parameters:
     alpha: 50
     emotions:
       Bright: 0
-      Normal: 0
+      Normal: 100
       Strong: 0
       Dark: 0
