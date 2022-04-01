@@ -1,0 +1,7 @@
+conn:
+  discord: "DISCORD TOKEN HERE"
+  cevioToken: "CEVIGO TOKEN HERE"
+  cevioEndPoint: "example.com:10443"
+  dsn: "./dictionaries.sqlite3"
+  driverName: "sqlite3"
+
