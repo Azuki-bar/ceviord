@@ -1,0 +1,21 @@
+version: '3'
+services:
+  ceviord:
+    build:
+      dockerfile: ./Dockerfile
+    environment:
+      CEVIORD_CONN_DISCORD: ""
+      CEVIORD_CONN_CEVIO_TOKEN: ""
+      CEVIORD_CONN_CEVIO_END_POINT: ""
+      CEVIORD_CONN_DSN: "root:password@unix(/var/run/mysqld)/mysql"
+      CEVIORD_CONN_DRIVER_NAME: "mysql"
+    volumes:
+      - mysqlsockdir:/var/run/mysqld
+    networks:
+      - default
+  mysql:
+    image: mysql:8.0.28-debian
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - mysqlsockdir:/var/run/mysqld
