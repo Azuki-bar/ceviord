@@ -25,9 +25,6 @@ func (c *change) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error 
 	for _, p := range ceviord.param.Parameters {
 		if c.changeTo == p.Name {
 			cev.currentParam = &p
-			if err := ceviord.cevioWav.ApplyEmotions(cev.currentParam); err != nil {
-				return fmt.Errorf("apply emotion failed; emotion is %+v", cev.currentParam)
-			}
 			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), m.GuildID); err != nil {
 				return fmt.Errorf("speaking about parameter setting: `%w`", err)
 			}

@@ -23,19 +23,19 @@ type Channel struct {
 	guildId        string
 	dictController replace.DbController
 }
-type Channels map[string]Channel
+type Channels map[string]*Channel
 
 func (cs Channels) addChannel(c Channel, guildId string) {
 	if _, ok := cs[guildId]; !ok {
 		c.currentParam = &ceviord.param.Parameters[0]
 		c.guildId = guildId
 		c.dictController = ceviord.dictController
-		cs[guildId] = c
+		cs[guildId] = &c
 	}
 }
 func (cs Channels) getChannel(guildId string) (*Channel, error) {
 	if c, ok := cs[guildId]; ok {
-		return &c, nil
+		return c, nil
 	}
 	return nil, fmt.Errorf("channel not found")
 }
@@ -214,6 +214,7 @@ func rawSpeak(text string, guildId string) error {
 	if err != nil || !cev.isJoin {
 		return err
 	}
+	ceviord.cevioWav.ApplyEmotions(cev.currentParam)
 	ceviord.mutex.Lock()
 	defer ceviord.mutex.Unlock()
 	buf := make([]byte, 16)
