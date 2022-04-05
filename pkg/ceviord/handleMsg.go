@@ -33,15 +33,23 @@ func (cs Channels) addChannel(c Channel, guildId string) {
 		cs[guildId] = c
 	}
 }
-func (cs Channels) getChannel(guildId string) (Channel, error) {
+func (cs Channels) getChannel(guildId string) (*Channel, error) {
 	if c, ok := cs[guildId]; ok {
-		return c, nil
+		return &c, nil
 	}
-	return Channel{}, fmt.Errorf("channel not found")
+	return nil, fmt.Errorf("channel not found")
 }
 func (cs Channels) isExistChannel(guildId string) bool {
 	_, ok := cs[guildId]
 	return ok
+}
+
+func (cs Channels) deleteChannel(guildId string) error {
+	if cs.isExistChannel(guildId) {
+		delete(cs, guildId)
+		return nil
+	}
+	return fmt.Errorf("guild id not found")
 }
 
 type Ceviord struct {
@@ -176,10 +184,8 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 		isJoined = true
 	}
 	cev, err := ceviord.Channels.getChannel(msg.GuildID)
-	if !cev.isJoin {
-		return
-	}
-	if !strings.HasPrefix(msg.Content, prefix) {
+
+	if !strings.HasPrefix(msg.Content, prefix) && isJoined {
 		if !(isJoined && msg.ChannelID == cev.pickedChannel) {
 			return
 		}
@@ -189,7 +195,10 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 		}
 		return
 	}
-	cev.isJoin = isJoined
+	if cev != nil { // already establish connection
+		cev.isJoin = isJoined
+		cev.dictController.SetGuildId(msg.GuildID)
+	}
 	cmd, err := parseUserCmd(strings.TrimPrefix(msg.Content, prefix))
 	if err != nil {
 		log.Println(fmt.Errorf("error occured in user cmd parser `%w`", err))

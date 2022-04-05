@@ -75,7 +75,7 @@ type bye struct{}
 func (*bye) parse(_ []string) error { return nil }
 func (*bye) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error {
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
-	if err != nil {
+	if err != nil || cev == nil {
 		return fmt.Errorf("connection not found")
 	}
 	if !cev.isJoin || cev.VoiceConn == nil {
@@ -84,6 +84,7 @@ func (*bye) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error {
 	defer func() {
 		if cev.VoiceConn != nil {
 			cev.VoiceConn.Close()
+			ceviord.Channels.deleteChannel(m.GuildID)
 		}
 	}()
 	err = cev.VoiceConn.Speaking(false)
