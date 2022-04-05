@@ -104,11 +104,9 @@ var ceviord = Ceviord{
 	mutex:    sync.Mutex{},
 }
 
-func SetNewTalker(wav CevioWav) { ceviord.cevioWav = wav }
-func SetDbController(r replace.DbController) {
-	ceviord.dictController = r
-}
-func SetParam(param *Param) { ceviord.param = param }
+func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
+func SetDbController(r replace.DbController) { ceviord.dictController = r }
+func SetParam(param *Param)                  { ceviord.param = param }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
