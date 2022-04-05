@@ -15,14 +15,48 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-type Ceviord struct {
+type Channel struct {
 	isJoin         bool
-	VoiceConn      *discordgo.VoiceConnection
 	pickedChannel  string
+	VoiceConn      *discordgo.VoiceConnection
+	currentParam   *Parameter
+	guildId        string
+	dictController replace.DbController
+}
+type Channels map[string]*Channel
+
+func (cs Channels) addChannel(c Channel, guildId string) {
+	if _, ok := cs[guildId]; !ok {
+		c.currentParam = &ceviord.param.Parameters[0]
+		c.guildId = guildId
+		c.dictController = ceviord.dictController
+		cs[guildId] = &c
+	}
+}
+func (cs Channels) getChannel(guildId string) (*Channel, error) {
+	if c, ok := cs[guildId]; ok {
+		return c, nil
+	}
+	return nil, fmt.Errorf("channel not found")
+}
+func (cs Channels) isExistChannel(guildId string) bool {
+	_, ok := cs[guildId]
+	return ok
+}
+
+func (cs Channels) deleteChannel(guildId string) error {
+	if cs.isExistChannel(guildId) {
+		delete(cs, guildId)
+		return nil
+	}
+	return fmt.Errorf("guild id not found")
+}
+
+type Ceviord struct {
+	Channels       Channels
 	cevioWav       CevioWav
 	param          *Param
 	Auth           *Auth
-	currentParam   *Parameter
 	mutex          sync.Mutex
 	dictController replace.DbController
 }
@@ -66,14 +100,13 @@ const strLenMax = 300
 var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 
 var ceviord = Ceviord{
-	isJoin:        false,
-	pickedChannel: "",
-	mutex:         sync.Mutex{},
+	Channels: Channels{},
+	mutex:    sync.Mutex{},
 }
 
 func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
-func SetParam(param *Param)                  { ceviord.param = param; ceviord.currentParam = &param.Parameters[0] }
+func SetParam(param *Param)                  { ceviord.param = param }
 
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
@@ -148,20 +181,22 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	} else if vcs.ChannelID != "" {
 		isJoined = true
 	}
+	cev, err := ceviord.Channels.getChannel(msg.GuildID)
 
-	if !strings.HasPrefix(msg.Content, prefix) {
-		if !(isJoined && msg.ChannelID == ceviord.pickedChannel) {
+	if !strings.HasPrefix(msg.Content, prefix) && isJoined {
+		if !(isJoined && msg.ChannelID == cev.pickedChannel) {
 			return
 		}
-
-		err = rawSpeak(GetMsg(msg, sess))
+		err = rawSpeak(GetMsg(msg, sess), msg.GuildID)
 		if err != nil {
 			log.Println(err)
 		}
 		return
 	}
-	ceviord.isJoin = isJoined
-	ceviord.dictController.SetGuildId(msg.GuildID)
+	if cev != nil { // already establish connection
+		cev.isJoin = isJoined
+		cev.dictController.SetGuildId(msg.GuildID)
+	}
 	cmd, err := parseUserCmd(strings.TrimPrefix(msg.Content, prefix))
 	if err != nil {
 		log.Println(fmt.Errorf("error occured in user cmd parser `%w`", err))
@@ -172,11 +207,16 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	}
 }
 
-func rawSpeak(text string) error {
+func rawSpeak(text string, guildId string) error {
+	cev, err := ceviord.Channels.getChannel(guildId)
+	if err != nil || !cev.isJoin {
+		return err
+	}
+	ceviord.cevioWav.ApplyEmotions(cev.currentParam)
 	ceviord.mutex.Lock()
 	defer ceviord.mutex.Unlock()
 	buf := make([]byte, 16)
-	_, err := rand.Read(buf)
+	_, err = rand.Read(buf)
 	if err != nil {
 		return fmt.Errorf("generating rand: %w", err)
 	}
@@ -191,26 +231,34 @@ func rawSpeak(text string) error {
 	if err != nil {
 		return fmt.Errorf("outputting: %w", err)
 	}
-	dgvoice.PlayAudioFile(ceviord.VoiceConn, fPath, make(chan bool))
+	dgvoice.PlayAudioFile(cev.VoiceConn, fPath, make(chan bool))
 	return nil
 }
 
-func SendMsg(msg string, session *discordgo.Session) error {
+func SendMsg(msg string, session *discordgo.Session, guildId string) error {
+	cev, err := ceviord.Channels.getChannel(guildId)
+	if err != nil || !cev.isJoin {
+		return err
+	}
 	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
 	if len([]rune(msg)) > 2000 {
 		return fmt.Errorf("discord message send limitation error")
 	} else if len([]rune(msg)) == 0 {
 		return fmt.Errorf("message len is 0")
 	}
-	_, err := session.ChannelMessageSend(ceviord.pickedChannel, msg)
+	_, err = session.ChannelMessageSend(cev.pickedChannel, msg)
 	return err
 }
 
-func SendEmbedMsg(embed *discordgo.MessageEmbed, session *discordgo.Session) error {
+func SendEmbedMsg(embed *discordgo.MessageEmbed, session *discordgo.Session, guildId string) error {
+	cev, err := ceviord.Channels.getChannel(guildId)
+	if err != nil || !cev.isJoin {
+		return err
+	}
 	if session == nil {
 		return fmt.Errorf("discord go session is nil")
 	}
-	_, err := session.ChannelMessageSendEmbed(ceviord.pickedChannel, embed)
+	_, err = session.ChannelMessageSendEmbed(cev.pickedChannel, embed)
 	return err
 }
 
@@ -228,8 +276,9 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	}
 	msg := []rune(name + "。" + replace.ApplySysDict(cont))
 
-	ceviord.dictController.SetGuildId(m.GuildID)
-	rawMsg, err := ceviord.dictController.ApplyUserDict(string(msg))
+	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	cev.dictController.SetGuildId(m.GuildID)
+	rawMsg, err := cev.dictController.ApplyUserDict(string(msg))
 	if err != nil {
 		log.Println("apply user dict failed `%w`", err)
 		return ""
