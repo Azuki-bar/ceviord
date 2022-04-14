@@ -147,6 +147,8 @@ func parseUserCmd(msg string) (userMainCmd, error) {
 		mainCmd = new(change)
 	case "help", "man":
 		mainCmd = new(help)
+	case "ping":
+		mainCmd = new(ping)
 	default:
 		return nil, fmt.Errorf("unknown user cmd `%s` \n", rawCmd[0])
 	}

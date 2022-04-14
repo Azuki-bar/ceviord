@@ -95,6 +95,13 @@ func (*bye) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error {
 	return nil
 }
 
+type ping struct{}
+
+func (*ping) parse(_ []string) error { return nil }
+func (*ping) handle(s *discordgo.Session, m *discordgo.MessageCreate) error {
+	return SendMsg("Your msg is trapped!", s, m.GuildID)
+}
+
 type dict struct {
 	sub userMainCmd
 }
