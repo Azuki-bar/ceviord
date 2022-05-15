@@ -6,14 +6,22 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
+	"github.com/go-gorp/gorp"
 	"github.com/vrischmann/envconfig"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	dbTimeoutSecond  = 2 * time.Second
+	dbChallengeTimes = 3
 )
 
 type conf struct {
@@ -69,13 +77,26 @@ func main() {
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
 
-	db, err := sql.Open(conf.auth.CeviordConn.DriverName, conf.auth.CeviordConn.Dsn)
+	var db *sql.DB
+	for i := 1; i <= dbChallengeTimes; i++ {
+		db, err = sql.Open(conf.auth.CeviordConn.DriverName, conf.auth.CeviordConn.Dsn)
+		if err == nil && db.Ping() == nil {
+			break
+		}
+		time.Sleep(dbTimeoutSecond)
+	}
 	if err != nil {
 		log.Println(fmt.Errorf("db connection failed `%w`", err))
 		return
 	}
 	defer db.Close()
-	r, err := replace.NewReplacer(db)
+	var dialect gorp.Dialect
+	if conf.auth.CeviordConn.DriverName == "mysql" {
+		dialect = gorp.MySQLDialect{Engine: "InnoDB", Encoding: "UTF8"}
+	} else if conf.auth.CeviordConn.DriverName == "sqlite3" {
+		dialect = gorp.SqliteDialect{}
+	}
+	r, err := replace.NewReplacer(db, dialect)
 	if err != nil {
 		log.Println(fmt.Errorf("db set failed `%w`", err))
 		return
