@@ -17,7 +17,11 @@ type change struct {
 	changeTo string
 }
 
-func (c *change) handle(_ *discordgo.Session, _ *discordgo.MessageCreate) error {
+func (c *change) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error {
+	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	if err != nil || !cev.isJoin {
+		return fmt.Errorf("conn not found")
+	}
 	for _, p := range ceviord.param.Parameters {
 		if c.changeTo == p.Name {
 			cev.currentParam = &p
