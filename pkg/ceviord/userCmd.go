@@ -20,11 +20,8 @@ type change struct {
 func (c *change) handle(_ *discordgo.Session, _ *discordgo.MessageCreate) error {
 	for _, p := range ceviord.param.Parameters {
 		if c.changeTo == p.Name {
-			ceviord.currentParam = &p
-			if err := ceviord.cevioWav.ApplyEmotions(ceviord.currentParam); err != nil {
-				return fmt.Errorf("apply emotion failed; emotion is %+v", ceviord.currentParam)
-			}
-			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name)); err != nil {
+			cev.currentParam = &p
+			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), m.GuildID); err != nil {
 				return fmt.Errorf("speaking about parameter setting: `%w`", err)
 			}
 		}
@@ -43,22 +40,26 @@ func (c *change) parse(cmds []string) error {
 type sasara struct{}
 
 func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
-	if ceviord.isJoin {
-		return fmt.Errorf("sasara is already joined\n")
-	}
 	vc := FindJoinedVC(sess, msg)
 	if vc == nil {
 		//todo fix err msg
 		return fmt.Errorf("voice conn ")
 	}
-	var err error
-	ceviord.VoiceConn, err = sess.ChannelVoiceJoin(msg.GuildID, vc.ID, false, false)
+	if ceviord.Channels.isExistChannel(msg.GuildID) {
+		c, err := ceviord.Channels.getChannel(msg.GuildID)
+		if err != nil || c.isJoin {
+			return fmt.Errorf("sasara is already joined\n")
+		}
+	}
+
+	voiceConn, err := sess.ChannelVoiceJoin(msg.GuildID, vc.ID, false, false)
 	if err != nil {
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
 	//ceviord.VoiceConn.LogLevel = discordgo.LogDebug
-	ceviord.pickedChannel = msg.ChannelID
+	ceviord.Channels.addChannel(
+		Channel{isJoin: true, pickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
 	return nil
 }
 func (*sasara) parse(_ []string) error { return nil }
@@ -66,25 +67,36 @@ func (*sasara) parse(_ []string) error { return nil }
 type bye struct{}
 
 func (*bye) parse(_ []string) error { return nil }
-func (*bye) handle(_ *discordgo.Session, _ *discordgo.MessageCreate) error {
-	if !ceviord.isJoin || ceviord.VoiceConn == nil {
+func (*bye) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error {
+	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	if err != nil || cev == nil {
+		return fmt.Errorf("connection not found")
+	}
+	if !cev.isJoin || cev.VoiceConn == nil {
 		return fmt.Errorf("ceviord is already disconnected\n")
 	}
 	defer func() {
-		if ceviord.VoiceConn != nil {
-			ceviord.VoiceConn.Close()
+		if cev.VoiceConn != nil {
+			cev.VoiceConn.Close()
+			ceviord.Channels.deleteChannel(m.GuildID)
 		}
 	}()
-	var err error
-	err = ceviord.VoiceConn.Speaking(false)
+	err = cev.VoiceConn.Speaking(false)
 	if err != nil {
 		log.Println(fmt.Errorf("speaking falsing: %w", err))
 	}
-	err = ceviord.VoiceConn.Disconnect()
+	err = cev.VoiceConn.Disconnect()
 	if err != nil {
 		log.Println(fmt.Errorf("disconnecting: %w", err))
 	}
 	return nil
+}
+
+type ping struct{}
+
+func (*ping) parse(_ []string) error { return nil }
+func (*ping) handle(s *discordgo.Session, m *discordgo.MessageCreate) error {
+	return SendMsg("Your msg is trapped!", s, m.GuildID)
 }
 
 type dict struct {
@@ -129,7 +141,11 @@ func (d *dictAdd) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) 
 	if len(d.word) == 0 || len(d.yomi) == 0 {
 		return fmt.Errorf("dict add field are not satisfied")
 	}
-	err := ceviord.dictController.Add(
+	cev, err := ceviord.Channels.getChannel(msg.GuildID)
+	if err != nil {
+		return err
+	}
+	err = cev.dictController.Add(
 		&replace.UserDictInput{
 			Word:          d.word,
 			Yomi:          d.yomi,
@@ -147,7 +163,7 @@ func (d *dictAdd) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) 
 			Title:       "単語追加",
 			Description: "辞書に以下のレコードを追加しました。",
 			Fields:      []*discordgo.MessageEmbedField{{Name: d.word, Value: d.yomi}},
-		}, sess)
+		}, sess, msg.GuildID)
 	if err != nil {
 		return fmt.Errorf("send add msg failed `%w`", err)
 	}
@@ -167,12 +183,16 @@ type dictDel struct {
 	ids []uint
 }
 
-func (d *dictDel) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) error {
+func (d *dictDel) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	if d.ids == nil || len(d.ids) == 0 {
 		return fmt.Errorf("dict del id is not provided")
 	}
+	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	if err != nil {
+		return err
+	}
 	for _, id := range d.ids {
-		del, err := ceviord.dictController.Delete(id)
+		del, err := cev.dictController.Delete(id)
 		if err != nil {
 			return fmt.Errorf("dict delete failed `%w`", err)
 		}
@@ -183,7 +203,7 @@ func (d *dictDel) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) er
 				Title:       "単語削除",
 				Description: "辞書から以下のレコードを削除しました。",
 				Fields:      []*discordgo.MessageEmbedField{{Name: del.Word, Value: del.Yomi}},
-			}, sess)
+			}, sess, m.GuildID)
 		if err != nil {
 			return fmt.Errorf("send delete msg failed `%w`", err)
 		}
@@ -265,13 +285,16 @@ func (d *dictList) parse(cmd []string) error {
 
 const discordPostLenLimit = 2000
 
-func (d *dictList) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) error {
+func (d *dictList) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	var lists []replace.Dict
-	var err error
+	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	if err != nil || !cev.isJoin {
+		return err
+	}
 	if d.isLatest {
-		lists, err = ceviord.dictController.Dump(d.limit)
+		lists, err = cev.dictController.Dump(d.limit)
 	} else {
-		lists, err = ceviord.dictController.DumpAtoB(d.from, d.to)
+		lists, err = cev.dictController.DumpAtoB(d.from, d.to)
 	}
 	if err != nil {
 		return fmt.Errorf("dictionary dump failed `%w`", err)
@@ -295,7 +318,7 @@ func (d *dictList) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) e
 		if v == "" {
 			continue
 		}
-		if err := SendMsg(v, sess); err != nil {
+		if err := SendMsg(v, sess, m.GuildID); err != nil {
 			return fmt.Errorf("send dict list to Discord failed `%w`", err)
 		}
 	}
@@ -315,12 +338,12 @@ func (d *dictList) getOptStr() string {
 
 type help struct{}
 
-func (*help) handle(sess *discordgo.Session, _ *discordgo.MessageCreate) error {
+func (*help) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	return SendEmbedMsg(&discordgo.MessageEmbed{
 		Title:       "コマンドリファレンス",
 		Description: "コマンドはこのページを参考に入力してください。",
 		URL:         "https://github.com/Azuki-bar/ceviord/blob/main/doc/cmd.md",
-	}, sess)
+	}, sess, m.GuildID)
 }
 
 func (*help) parse(_ []string) error { return nil }

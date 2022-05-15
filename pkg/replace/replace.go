@@ -147,6 +147,7 @@ func ApplySysDict(msg string) string {
 	dicts := []dict{
 		{before: regexp.MustCompile(`https?://.*`), after: "URL "},
 		{before: regexp.MustCompile("(?s)```(.*)```"), after: "コードブロック"},
+		{before: regexp.MustCompile("~~(.+)~~"), after: " ピーー"},
 		{before: regexp.MustCompile("\n"), after: " "},
 		{before: regexp.MustCompile("~"), after: "ー"},
 		{before: regexp.MustCompile("〜"), after: "ー"},
@@ -161,6 +162,8 @@ func replaceCustomEmoji(msg string) string {
 	return regexp.MustCompile(`<a?:.*:.*>`).ReplaceAllString(msg, "")
 }
 
+type Dicts []Dict
+
 func (ds *Dicts) GetStringSlice() []string {
 	var res []string
 	res = append(res, "ID\t単語\tよみ", "---------------------------")
@@ -169,8 +172,6 @@ func (ds *Dicts) GetStringSlice() []string {
 	}
 	return res
 }
-
-type Dicts []Dict
 
 func (ds *Dicts) replace(msg string) string {
 	rMsg := []rune(msg)
