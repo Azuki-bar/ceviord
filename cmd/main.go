@@ -79,7 +79,9 @@ func main() {
 
 	var db *sql.DB
 	for i := 1; i <= dbChallengeTimes; i++ {
-		db, err = sql.Open(conf.auth.CeviordConn.DriverName, conf.auth.CeviordConn.Dsn)
+		dbConf := conf.auth.CeviordConn.DB
+		dsn := fmt.Sprintf("%s:%s@%s(%s)/%s?parseTime=true", dbConf.User, dbConf.Password, dbConf.Protocol, dbConf.Addr, dbConf.Name)
+		db, err = sql.Open("mysql", dsn)
 		if err == nil && db.Ping() == nil {
 			break
 		}
@@ -90,12 +92,7 @@ func main() {
 		return
 	}
 	defer db.Close()
-	var dialect gorp.Dialect
-	if conf.auth.CeviordConn.DriverName == "mysql" {
-		dialect = gorp.MySQLDialect{Engine: "InnoDB", Encoding: "UTF8"}
-	} else if conf.auth.CeviordConn.DriverName == "sqlite3" {
-		dialect = gorp.SqliteDialect{}
-	}
+	dialect := gorp.MySQLDialect{Engine: "InnoDB", Encoding: "utf8mb4"}
 	r, err := replace.NewReplacer(db, dialect)
 	if err != nil {
 		log.Println(fmt.Errorf("db set failed `%w`", err))

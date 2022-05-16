@@ -2,5 +2,11 @@ conn:
   discord: "DISCORD TOKEN HERE"
   cevioToken: "CEVIGO TOKEN HERE"
   cevioEndPoint: "example.com:10443"
-  dsn: "./dictionaries.sqlite3" # write dsn. format is same for go-sql-driver https://github.com/go-sql-driver/mysql#dsn-data-source-name
-  driverName: "mysql"
+  db:
+    name: "mysql"
+    addr: "db address"
+    port: 3306
+    user: "mysql"
+    password: "DB PASSWORD"
+    protocol: "tcp"
+

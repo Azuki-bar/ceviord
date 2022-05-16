@@ -1,5 +1,5 @@
 volumes:
-  dbdata:
+  dbData:
     driver: local
 services:
   ceviord:
@@ -9,8 +9,12 @@ services:
       CEVIORD_CONN_DISCORD: ""
       CEVIORD_CONN_CEVIO_TOKEN: ""
       CEVIORD_CONN_CEVIO_END_POINT: ""
-      CEVIORD_CONN_DSN: "root:password@tcp(db:3306)/mysql"
-      CEVIORD_CONN_DRIVER_NAME: "mysql"
+      CEVIORD_CONN_DB_NAME: "mysql"
+      CEVIORD_CONN_DB_ADDR: "db"
+      CEVIORD_CONN_DB_PORT: "3306"
+      CEVIORD_CONN_DB_PASSWORD: "password"
+      CEVIORD_CONN_DB_USER: "root"
+      CEVIORD_CONN_DB_PROTOCOL: "tcp"
     depends_on:
       - db
   db:
@@ -18,4 +22,9 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
     volumes:
-      - dbdata:/var/lib/mysql
+      - dbData:/var/lib/mysql
+    ports:
+      - 33060:3306
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
