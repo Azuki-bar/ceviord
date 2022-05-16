@@ -23,7 +23,7 @@ jobs:
 
       - name: set lower case owner name
         run: |
-          echo "IMAGE_NAME_LC=${env.IMAGE_NAME,,}" >>${GITHUB_ENV}
+          echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >>${GITHUB_ENV}
       # These are prerequisites for the docker build step
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
