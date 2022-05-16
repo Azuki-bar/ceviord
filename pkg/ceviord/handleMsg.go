@@ -69,15 +69,24 @@ type Auth struct {
 	CeviordConn Conn `yaml:"conn"`
 }
 
+type DB struct {
+	Name     string `yaml:"Name"`
+	Addr     string `yaml:"Addr"`
+	Port     int    `yaml:"Port"`
+	Password string `yaml:"password"`
+	User     string `yaml:"User"`
+	Protocol string `yaml:"protocol"`
+}
+
 type Conn struct {
 	Discord string `yaml:"discord"`
 	Cevio   struct {
 		Token    string `yaml:"cevioToken"`
 		EndPoint string `yaml:"cevioEndPoint"`
 	} `yaml:",inline"`
-	Dsn        string `yaml:"dsn"`
-	DriverName string `yaml:"driverName"`
+	DB DB `yaml:"db"`
 }
+
 type Parameter struct {
 	Name      string         `yaml:"name"`
 	Cast      string         `yaml:"cast"`

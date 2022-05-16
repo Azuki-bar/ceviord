@@ -6,14 +6,22 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
+	"github.com/go-gorp/gorp"
 	"github.com/vrischmann/envconfig"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	dbTimeoutSecond  = 2 * time.Second
+	dbChallengeTimes = 3
 )
 
 type conf struct {
@@ -69,13 +77,23 @@ func main() {
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
 
-	db, err := sql.Open(conf.auth.CeviordConn.DriverName, conf.auth.CeviordConn.Dsn)
+	var db *sql.DB
+	for i := 1; i <= dbChallengeTimes; i++ {
+		dbConf := conf.auth.CeviordConn.DB
+		dsn := fmt.Sprintf("%s:%s@%s(%s)/%s?parseTime=true", dbConf.User, dbConf.Password, dbConf.Protocol, dbConf.Addr, dbConf.Name)
+		db, err = sql.Open("mysql", dsn)
+		if err == nil && db.Ping() == nil {
+			break
+		}
+		time.Sleep(dbTimeoutSecond)
+	}
 	if err != nil {
 		log.Println(fmt.Errorf("db connection failed `%w`", err))
 		return
 	}
 	defer db.Close()
-	r, err := replace.NewReplacer(db)
+	dialect := gorp.MySQLDialect{Engine: "InnoDB", Encoding: "utf8mb4"}
+	r, err := replace.NewReplacer(db, dialect)
 	if err != nil {
 		log.Println(fmt.Errorf("db set failed `%w`", err))
 		return

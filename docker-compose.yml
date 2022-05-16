@@ -1,0 +1,30 @@
+volumes:
+  dbData:
+    driver: local
+services:
+  ceviord:
+    build:
+      dockerfile: ./Dockerfile
+    environment:
+      CEVIORD_CONN_DISCORD: ""
+      CEVIORD_CONN_CEVIO_TOKEN: ""
+      CEVIORD_CONN_CEVIO_END_POINT: ""
+      CEVIORD_CONN_DB_NAME: "mysql"
+      CEVIORD_CONN_DB_ADDR: "db"
+      CEVIORD_CONN_DB_PORT: "3306"
+      CEVIORD_CONN_DB_PASSWORD: "password"
+      CEVIORD_CONN_DB_USER: "root"
+      CEVIORD_CONN_DB_PROTOCOL: "tcp"
+    depends_on:
+      - db
+  db:
+    image: mysql:8.0.28-debian
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - dbData:/var/lib/mysql
+    ports:
+      - 33060:3306
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci

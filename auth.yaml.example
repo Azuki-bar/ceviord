@@ -2,6 +2,11 @@ conn:
   discord: "DISCORD TOKEN HERE"
   cevioToken: "CEVIGO TOKEN HERE"
   cevioEndPoint: "example.com:10443"
-  dsn: "./dictionaries.sqlite3"
-  driverName: "sqlite3"
+  db:
+    name: "mysql"
+    addr: "db address"
+    port: 3306
+    user: "mysql"
+    password: "DB PASSWORD"
+    protocol: "tcp"
 

@@ -40,9 +40,9 @@ type DbController interface {
 	DumpAtoB(from, to uint) ([]Dict, error)
 }
 
-func initDb(db *sql.DB) (*gorp.DbMap, error) {
-	dbMap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
-	dbMap.AddTableWithName(Dict{}, "Dicts").SetKeys(true, "ID")
+func initDb(db *sql.DB, dialect gorp.Dialect) (*gorp.DbMap, error) {
+	dbMap := &gorp.DbMap{Db: db, Dialect: dialect}
+	dbMap.AddTableWithName(Dict{}, "dicts").SetKeys(true, "id")
 	err := dbMap.CreateTablesIfNotExists()
 	if err != nil {
 		log.Println(fmt.Errorf("create table failed `%w`", err))
@@ -50,9 +50,9 @@ func initDb(db *sql.DB) (*gorp.DbMap, error) {
 	}
 	return dbMap, nil
 }
-func NewReplacer(db *sql.DB) (*Replacer, error) {
+func NewReplacer(db *sql.DB, dialect gorp.Dialect) (*Replacer, error) {
 	rs := &Replacer{}
-	dbMap, err := initDb(db)
+	dbMap, err := initDb(db, dialect)
 	if err != nil {
 		return nil, err
 	}

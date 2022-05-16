@@ -61,6 +61,7 @@ func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) err
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
+	//ceviord.VoiceConn.LogLevel = discordgo.LogDebug
 	ceviord.Channels.addChannel(
 		Channel{isJoin: true, pickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
 	return nil
