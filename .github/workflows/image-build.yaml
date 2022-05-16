@@ -42,7 +42,7 @@ jobs:
           push: true
           context: .
           file: ./Dockerfile
-          tags: ${{ env.IMAGE_NAME_LC }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}
           label: latest
 #          tags: |
 #            ${{ env.IMAGE_NAME_LC }}:${{ steps.prep.outputs.BUILD_ID }}
