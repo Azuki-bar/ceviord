@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"github.com/azuki-bar/ceviord/pkg/dgvoice"
+	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/azuki-bar/ceviord/pkg/replace"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,13 +16,24 @@ import (
 )
 
 type Channel struct {
-	isJoin         bool
 	pickedChannel  string
 	VoiceConn      *discordgo.VoiceConnection
 	currentParam   *Parameter
 	guildId        string
 	dictController replace.DbController
 }
+
+var logger = logging.NewLog(logging.INFO)
+
+func (c Channel) isActorJoined(sess *discordgo.Session) (bool, error) {
+	vcs, err := sess.State.VoiceState(c.guildId, sess.State.User.ID)
+	if err != nil {
+		logger.Log(logging.INFO, err)
+		return false, err
+	}
+	return vcs.ChannelID != "", nil
+}
+
 type Channels map[string]*Channel
 
 func (cs Channels) addChannel(c Channel, guildId string) {
@@ -120,12 +131,12 @@ func SetParam(param *Param)                  { ceviord.param = param }
 func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
 	st, err := s.GuildChannels(m.GuildID)
 	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
+		logger.Log(logging.INFO, err)
 		return nil
 	}
 	vcs, err := s.State.VoiceState(m.GuildID, m.Author.ID)
 	if err != nil {
-		log.Println(fmt.Errorf("find joinedVc err occurred `%w`", err))
+		logger.Log(logging.WARN, fmt.Errorf("find joinedVc err occurred `%w`", err))
 		return nil
 	}
 	for _, c := range st {
@@ -179,48 +190,42 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	if msg.Author.Bot {
 		return
 	}
-	vcs, err := sess.State.VoiceState(msg.GuildID, sess.State.User.ID)
-	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
-	}
-
-	isJoined := false
-	if err != nil {
-		log.Println(fmt.Errorf("%w", err))
-		//todo; implement
-		isJoined = false
-	} else if vcs.ChannelID != "" {
-		isJoined = true
-	}
 	cev, err := ceviord.Channels.getChannel(msg.GuildID)
-
+	if err != nil {
+		//todo; チャンネルに入っていないときの挙動を定義
+	}
+	isJoined, err := cev.isActorJoined(sess)
+	if err != nil {
+		logger.Log(logging.INFO, "Err occurred in actor joined detector")
+		return
+	}
 	if !strings.HasPrefix(msg.Content, prefix) && isJoined {
 		if !(isJoined && msg.ChannelID == cev.pickedChannel) {
 			return
 		}
-		err = rawSpeak(GetMsg(msg, sess), msg.GuildID)
+		err = rawSpeak(GetMsg(msg, sess), msg.GuildID, sess)
 		if err != nil {
-			log.Println(err)
+			logger.Log(logging.INFO, err)
 		}
 		return
 	}
 	if cev != nil { // already establish connection
-		cev.isJoin = isJoined
 		cev.dictController.SetGuildId(msg.GuildID)
 	}
 	cmd, err := parseUserCmd(strings.TrimPrefix(msg.Content, prefix))
 	if err != nil {
-		log.Println(fmt.Errorf("error occured in user cmd parser `%w`", err))
+		logger.Log(logging.DEBUG, fmt.Errorf("error occured in user cmd parser `%w`", err))
 		return
 	}
 	if err = cmd.handle(sess, msg); err != nil {
-		log.Println(fmt.Errorf("error occured in cmd handler %T; `%w`", cmd, err))
+		logger.Log(logging.WARN, fmt.Errorf("error occured in cmd handler %T; `%w`", cmd, err))
 	}
 }
 
-func rawSpeak(text string, guildId string) error {
+func rawSpeak(text string, guildId string, sess *discordgo.Session) error {
 	cev, err := ceviord.Channels.getChannel(guildId)
-	if err != nil || !cev.isJoin {
+	isJoined, err := cev.isActorJoined(sess)
+	if err != nil || !isJoined {
 		return err
 	}
 	ceviord.cevioWav.ApplyEmotions(cev.currentParam)
@@ -248,7 +253,8 @@ func rawSpeak(text string, guildId string) error {
 
 func SendMsg(msg string, session *discordgo.Session, guildId string) error {
 	cev, err := ceviord.Channels.getChannel(guildId)
-	if err != nil || !cev.isJoin {
+	isJoined, err := cev.isActorJoined(session)
+	if err != nil || !isJoined {
 		return err
 	}
 	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
@@ -263,7 +269,8 @@ func SendMsg(msg string, session *discordgo.Session, guildId string) error {
 
 func SendEmbedMsg(embed *discordgo.MessageEmbed, session *discordgo.Session, guildId string) error {
 	cev, err := ceviord.Channels.getChannel(guildId)
-	if err != nil || !cev.isJoin {
+	isJoined, err := cev.isActorJoined(session)
+	if err != nil || !isJoined {
 		return err
 	}
 	if session == nil {
@@ -282,7 +289,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	}
 	cont, err := m.ContentWithMoreMentionsReplaced(s)
 	if err != nil {
-		log.Println(fmt.Errorf("replace mention failed `%w`", err))
+		logger.Log(logging.WARN, fmt.Errorf("replace mention failed `%w`", err))
 		return ""
 	}
 	msg := []rune(name + "。" + replace.ApplySysDict(cont))
@@ -291,7 +298,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	cev.dictController.SetGuildId(m.GuildID)
 	rawMsg, err := cev.dictController.ApplyUserDict(string(msg))
 	if err != nil {
-		log.Println("apply user dict failed `%w`", err)
+		logger.Log(logging.WARN, "apply user dict failed `%w`", err)
 		return ""
 	}
 	return stringMax(rawMsg, strLenMax)
