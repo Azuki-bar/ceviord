@@ -39,5 +39,5 @@ func (l Log) Log(level logLevel, msg ...any) {
 	if level < l.level {
 		return
 	}
-	goLogger.Printf("[%s] %s\n", l.level, fmt.Sprintln(msg))
+	goLogger.Printf("[%s] %s\n", l.level, fmt.Sprintln(msg...))
 }

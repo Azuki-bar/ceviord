@@ -191,13 +191,16 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 		return
 	}
 	cev, err := ceviord.Channels.getChannel(msg.GuildID)
-	if err != nil {
+	if err != nil || cev == nil {
 		//todo; チャンネルに入っていないときの挙動を定義
 	}
-	isJoined, err := cev.isActorJoined(sess)
-	if err != nil {
-		logger.Log(logging.INFO, "Err occurred in actor joined detector")
-		return
+	isJoined := false
+	if cev != nil {
+		isJoined, err = cev.isActorJoined(sess)
+		if err != nil {
+			logger.Log(logging.INFO, "Err occurred in actor joined detector")
+			return
+		}
 	}
 	if !strings.HasPrefix(msg.Content, prefix) && isJoined {
 		if !(isJoined && msg.ChannelID == cev.pickedChannel) {
