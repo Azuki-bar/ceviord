@@ -1,9 +1,14 @@
-FROM golang:1.18.0-buster as builder
+FROM golang:1.18.2-bullseye as builder
 
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get update  \
+ && \
+    apt-get install -y --no-install-recommends \
     ffmpeg \
-    libopus-dev
+    libopus-dev \
+  &&  \
+    apt-get clean \
+  && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY ./ /app
 WORKDIR /app

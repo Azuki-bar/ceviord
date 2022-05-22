@@ -17,15 +17,19 @@ type change struct {
 	changeTo string
 }
 
-func (c *change) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error {
+func (c *change) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
-	if err != nil || !cev.isJoin {
+	if err != nil {
+		return fmt.Errorf("conn not found")
+	}
+	isJoin, err := cev.isActorJoined(sess)
+	if err != nil || !isJoin {
 		return fmt.Errorf("conn not found")
 	}
 	for _, p := range ceviord.param.Parameters {
 		if c.changeTo == p.Name {
 			cev.currentParam = &p
-			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), m.GuildID); err != nil {
+			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), m.GuildID, sess); err != nil {
 				return fmt.Errorf("speaking about parameter setting: `%w`", err)
 			}
 		}
@@ -51,19 +55,23 @@ func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) err
 	}
 	if ceviord.Channels.isExistChannel(msg.GuildID) {
 		c, err := ceviord.Channels.getChannel(msg.GuildID)
-		if err != nil || c.isJoin {
+		if err != nil {
+			return fmt.Errorf("some error occurred in channgel getter")
+		}
+		isJoin, err := c.isActorJoined(sess)
+		if err != nil || isJoin {
 			return fmt.Errorf("sasara is already joined\n")
 		}
 	}
 
-	voiceConn, err := sess.ChannelVoiceJoin(msg.GuildID, vc.ID, false, false)
+	voiceConn, err := sess.ChannelVoiceJoin(msg.GuildID, vc.ID, false, true)
 	if err != nil {
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
 	//ceviord.VoiceConn.LogLevel = discordgo.LogDebug
 	ceviord.Channels.addChannel(
-		Channel{isJoin: true, pickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
+		Channel{pickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
 	return nil
 }
 func (*sasara) parse(_ []string) error { return nil }
@@ -71,12 +79,13 @@ func (*sasara) parse(_ []string) error { return nil }
 type bye struct{}
 
 func (*bye) parse(_ []string) error { return nil }
-func (*bye) handle(_ *discordgo.Session, m *discordgo.MessageCreate) error {
+func (*bye) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
 	if err != nil || cev == nil {
 		return fmt.Errorf("connection not found")
 	}
-	if !cev.isJoin || cev.VoiceConn == nil {
+	isJoin, err := cev.isActorJoined(sess)
+	if !isJoin || cev.VoiceConn == nil {
 		return fmt.Errorf("ceviord is already disconnected\n")
 	}
 	defer func() {
@@ -292,7 +301,7 @@ const discordPostLenLimit = 2000
 func (d *dictList) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	var lists []replace.Dict
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
-	if err != nil || !cev.isJoin {
+	if err != nil || cev == nil {
 		return err
 	}
 	if d.isLatest {

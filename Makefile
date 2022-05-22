@@ -14,3 +14,4 @@ ttsProto:
 	 --go-grpc_out=. \
 	  --go-grpc_opt=Mproto/textToSpeech.proto \
 	  -I./ proto/textToSpeech.proto
+

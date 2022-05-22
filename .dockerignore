@@ -1,0 +1,7 @@
+*.sqlite3
+auth.yaml*
+
+.github
+doc
+proto
+**/*.md
