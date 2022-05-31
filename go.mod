@@ -9,7 +9,7 @@ require (
 	github.com/gotti/cevigo v0.0.0-20220222162533-6e9cbc73fb49
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/vrischmann/envconfig v1.3.0
-	google.golang.org/grpc v1.46.2
+	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/yaml.v2 v2.4.0
 	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
