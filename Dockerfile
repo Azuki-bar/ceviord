@@ -8,6 +8,7 @@ FROM ubuntu:jammy-20220428 as runner
 RUN apt-get update  \
  && \
     apt-get install -y --no-install-recommends \
+    ca-certificates \
     ffmpeg \
     libopus-dev \
   &&  \
