@@ -1,4 +1,4 @@
-FROM golang:1.18.2-bullseye as builder
+FROM golang:1.18.3-bullseye as builder
 
 RUN apt-get update  \
  && \
