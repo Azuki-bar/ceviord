@@ -3,12 +3,11 @@ volumes:
     driver: local
 services:
   ceviord:
-    build:
-      dockerfile: ./Dockerfile
+    image: ghcr.io/azuki-bar/ceviord:main-055a1c1c-1654485989
     environment:
       CEVIORD_CONN_DISCORD: ""
       CEVIORD_CONN_CEVIO_TOKEN: ""
-      CEVIORD_CONN_CEVIO_END_POINT: ""
+      CEVIORD_CONN_CEVIO_END_POINT: "example.com:12345"
       CEVIORD_CONN_DB_NAME: "mysql"
       CEVIORD_CONN_DB_ADDR: "db"
       CEVIORD_CONN_DB_PORT: "3306"
