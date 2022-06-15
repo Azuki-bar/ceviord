@@ -12,12 +12,10 @@ assignees: ''
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 明確で簡潔な説明を求めます。
 
-
 **Describe the solution you'd like**
 **あなたの望む解決方法を説明してください**
 A clear and concise description of what you want to happen.
 何をしたいのかを明確かつ簡潔に説明してください。
-
 
 **Additional context**
 **補足情報**

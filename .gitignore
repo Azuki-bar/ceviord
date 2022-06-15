@@ -34,5 +34,5 @@ go.work
 parameter.yaml
 auth.yaml
 
-./docker-compose.override.yml
-./ceviord
+docker-compose.override.yml
+ceviord
