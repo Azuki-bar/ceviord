@@ -33,3 +33,6 @@ go.work
 *.sqlite3
 parameter.yaml
 auth.yaml
+
+./docker-compose.override.yml
+./ceviord
