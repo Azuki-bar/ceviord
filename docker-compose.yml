@@ -16,6 +16,7 @@ services:
       CEVIORD_CONN_DB_PROTOCOL: "tcp"
     depends_on:
       - db
+    restart: always
   db:
     image: mysql:8.0.29-debian
     environment:

@@ -1,7 +1,7 @@
 package speechApi
 
 import (
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"github.com/azuki-bar/ceviord/pkg/handleCmd"
 	"github.com/gotti/cevigo/pkg/cevioai"
 )
 
@@ -9,7 +9,7 @@ type cevioWav struct {
 	talker cevioai.ITalker2V40
 }
 
-func NewTalker(para *ceviord.Parameter) *cevioWav {
+func NewTalker(para *handleCmd.Parameter) *cevioWav {
 	c := cevioWav{talker: cevioai.NewITalker2V40(cevioai.CevioAiApiName)}
 	c.ApplyEmotions(para)
 	return &c
@@ -20,7 +20,7 @@ func (c *cevioWav) OutputWaveToFile(talkWard string, path string) (err error) {
 	return err
 }
 
-func (c *cevioWav) ApplyEmotions(param *ceviord.Parameter) error {
+func (c *cevioWav) ApplyEmotions(param *handleCmd.Parameter) error {
 	c.talker.SetVolume(param.Volume)
 	c.talker.SetSpeed(param.Speed)
 	c.talker.SetTone(param.Tone)

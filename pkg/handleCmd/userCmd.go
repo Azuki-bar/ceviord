@@ -1,4 +1,4 @@
-package ceviord
+package handleCmd
 
 import (
 	"fmt"
@@ -13,11 +13,11 @@ type userMainCmd interface {
 	handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error
 }
 
-type change struct {
+type changeOld struct {
 	changeTo string
 }
 
-func (c *change) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (c *changeOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
 	if err != nil {
 		return fmt.Errorf("conn not found")
@@ -37,7 +37,7 @@ func (c *change) handle(sess *discordgo.Session, m *discordgo.MessageCreate) err
 	return nil
 }
 
-func (c *change) parse(cmds []string) error {
+func (c *changeOld) parse(cmds []string) error {
 	if len(cmds) < 2 {
 		return fmt.Errorf("apply commands are not correct")
 	}
@@ -45,10 +45,10 @@ func (c *change) parse(cmds []string) error {
 	return nil
 }
 
-type sasara struct{}
+type sasaraOld struct{}
 
-func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
-	vc := FindJoinedVC(sess, msg)
+func (*sasaraOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
+	vc := findJoinedVC(sess, msg.Message.GuildID, msg.Message.Author.ID)
 	if vc == nil {
 		//todo fix err msg
 		return fmt.Errorf("voice conn ")
@@ -69,17 +69,17 @@ func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) err
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
-	//ceviord.VoiceConn.LogLevel = discordgo.LogDebug
+	//handleCmd.VoiceConn.LogLevel = discordgo.LogDebug
 	ceviord.Channels.addChannel(
 		Channel{pickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
 	return nil
 }
-func (*sasara) parse(_ []string) error { return nil }
+func (*sasaraOld) parse(_ []string) error { return nil }
 
-type bye struct{}
+type byeOld struct{}
 
-func (*bye) parse(_ []string) error { return nil }
-func (*bye) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (*byeOld) parse(_ []string) error { return nil }
+func (*byeOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
 	if err != nil || cev == nil {
 		return fmt.Errorf("connection not found")
@@ -105,25 +105,25 @@ func (*bye) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	return nil
 }
 
-type ping struct{}
+type pingOld struct{}
 
-func (*ping) parse(_ []string) error { return nil }
-func (*ping) handle(s *discordgo.Session, m *discordgo.MessageCreate) error {
+func (*pingOld) parse(_ []string) error { return nil }
+func (*pingOld) handle(s *discordgo.Session, m *discordgo.MessageCreate) error {
 	return SendMsg("Your msg is trapped!", s, m.GuildID)
 }
 
-type dict struct {
+type dictOld struct {
 	sub userMainCmd
 }
 
-func (d *dict) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
+func (d *dictOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
 	if d.sub == nil {
 		return fmt.Errorf("dict sub cmd not provided")
 	}
 	return d.sub.handle(sess, msg)
 }
 
-func (d *dict) parse(cmds []string) error {
+func (d *dictOld) parse(cmds []string) error {
 	if len(cmds) <= 1 {
 		return fmt.Errorf("sub cmd are not satisfied. \n")
 	}
@@ -187,8 +187,8 @@ func (d *dictAdd) parse(cmd []string) error {
 	if len(cmd) <= 2 {
 		return fmt.Errorf("dict add option are not satisfied\n")
 	}
-	d.word = stringMax(cmd[1], strLenMax)
-	d.yomi = stringMax(cmd[2], strLenMax)
+	d.word = stringMax(cmd[1], readTextMaxLen)
+	d.yomi = stringMax(cmd[2], readTextMaxLen)
 	return nil
 }
 
@@ -351,7 +351,7 @@ func (d *dictList) getOptStr() string {
 
 type help struct{}
 
-func (*help) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (*helpOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	return SendEmbedMsg(&discordgo.MessageEmbed{
 		Title:       "コマンドリファレンス",
 		Description: "コマンドはこのページを参考に入力してください。",
@@ -359,7 +359,7 @@ func (*help) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	}, sess, m.GuildID)
 }
 
-func (*help) parse(_ []string) error { return nil }
+func (*helpOld) parse(_ []string) error { return nil }
 
 func stringMax(msg string, max int) string {
 	lenMsg := len([]rune(msg))

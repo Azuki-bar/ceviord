@@ -3,7 +3,7 @@ package speechGrpc
 import (
 	"context"
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"github.com/azuki-bar/ceviord/pkg/handleCmd"
 	pb "github.com/azuki-bar/ceviord/spec"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -15,12 +15,12 @@ import (
 type cevioWavGrpc struct {
 	ttsClient pb.TtsClient
 	grpcConn  *grpc.ClientConn
-	param     ceviord.Parameter
+	param     handleCmd.Parameter
 	token     string
 }
 
 // NewTalker returns wav create connection and connection close function.
-func NewTalker(connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
+func NewTalker(connConf *handleCmd.Conn, param *handleCmd.Parameter) (*cevioWavGrpc, func() error) {
 	conn, err := grpc.Dial(connConf.Cevio.EndPoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalln(err)
@@ -58,7 +58,7 @@ func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 	_, err = f.Write(res.Audio)
 	return err
 }
-func (c *cevioWavGrpc) ApplyEmotions(param *ceviord.Parameter) error {
+func (c *cevioWavGrpc) ApplyEmotions(param *handleCmd.Parameter) error {
 	c.param = *param
 	return nil
 }

@@ -1,16 +1,17 @@
-package ceviord
+package handleCmd
 
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/dgvoice"
-	"github.com/azuki-bar/ceviord/pkg/logging"
-	"github.com/azuki-bar/ceviord/pkg/replace"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/azuki-bar/ceviord/pkg/dgvoice"
+	"github.com/azuki-bar/ceviord/pkg/logging"
+	"github.com/azuki-bar/ceviord/pkg/replace"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -115,7 +116,7 @@ type CevioWav interface {
 }
 
 const prefix = "!"
-const strLenMax = 300
+const readTextMaxLen = 300
 
 var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 
@@ -128,13 +129,13 @@ func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
 func SetParam(param *Param)                  { ceviord.param = param }
 
-func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
-	st, err := s.GuildChannels(m.GuildID)
+func findJoinedVC(s *discordgo.Session, guildId, authorId string) *discordgo.Channel {
+	st, err := s.GuildChannels(guildId)
 	if err != nil {
 		logger.Log(logging.INFO, err)
 		return nil
 	}
-	vcs, err := s.State.VoiceState(m.GuildID, m.Author.ID)
+	vcs, err := s.State.VoiceState(guildId, authorId)
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("find joinedVc err occurred `%w`", err))
 		return nil
@@ -158,20 +159,21 @@ func parseUserCmd(msg string) (userMainCmd, error) {
 	var mainCmd userMainCmd
 	switch rawCmd[0] {
 	case "sasara":
-		mainCmd = new(sasara)
+		mainCmd = new(sasaraOld)
 	case "bye":
-		mainCmd = new(bye)
+		mainCmd = new(byeOld)
 	case "dict":
-		mainCmd = new(dict)
+		mainCmd = new(dictOld)
 	case "change":
-		mainCmd = new(change)
+		mainCmd = new(changeOld)
 	case "help", "man":
-		mainCmd = new(help)
+		mainCmd = new(helpOld)
 	case "ping":
-		mainCmd = new(ping)
+		mainCmd = new(pingOld)
 	default:
 		return nil, fmt.Errorf("unknown user cmd `%s` \n", rawCmd[0])
 	}
+	// parse sub command
 	if err := mainCmd.parse(rawCmd); err != nil {
 		return nil, err
 	}
@@ -304,5 +306,5 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 		logger.Log(logging.WARN, "apply user dict failed `%w`", err)
 		return ""
 	}
-	return stringMax(rawMsg, strLenMax)
+	return stringMax(rawMsg, readTextMaxLen)
 }

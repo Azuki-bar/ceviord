@@ -3,19 +3,21 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/replace"
-	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
-	"github.com/go-gorp/gorp"
-	"github.com/vrischmann/envconfig"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/azuki-bar/ceviord/pkg/handleCmd"
+	"github.com/azuki-bar/ceviord/pkg/replace"
+	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
+
 	"github.com/bwmarrin/discordgo"
+	"github.com/go-gorp/gorp"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/vrischmann/envconfig"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -25,8 +27,8 @@ var (
 )
 
 type conf struct {
-	param *ceviord.Param
-	auth  *ceviord.Auth
+	param *handleCmd.Param
+	auth  *handleCmd.Auth
 }
 
 func getConf() (*conf, error) {
@@ -34,12 +36,12 @@ func getConf() (*conf, error) {
 	if err != nil {
 		return nil, err
 	}
-	var param ceviord.Param
+	var param handleCmd.Param
 	if err = yaml.Unmarshal(paramFile, &param); err != nil {
 		return nil, err
 	}
 
-	var auth ceviord.Auth
+	var auth handleCmd.Auth
 	err = envconfig.Init(&auth)
 	if err == nil {
 		return &conf{param: &param, auth: &auth}, nil
@@ -60,23 +62,21 @@ func main() {
 	if err != nil {
 		log.Fatalln("get config failed `%w`", err)
 	}
-	ceviord.SetParam(conf.param)
+	handleCmd.SetParam(conf.param)
 
 	dgSess, err := discordgo.New("Bot " + conf.auth.CeviordConn.Discord)
+	dgSess.Debug = true
 	if err != nil {
-		log.Println("create discord go session failed `%w`", err)
+		log.Println("create discordgo session failed `%w`", err)
 		return
 	}
 
-	ap := &discordgo.Application{}
-	ap.Name = "ceviord"
-	ap.Description = "read text with cevigo"
-	ap, err = dgSess.ApplicationCreate(ap)
-	dgSess.AddHandler(ceviord.MessageCreate)
+	dgSess.AddHandler(handleCmd.MessageCreate)
+	dgSess.AddHandler(handleCmd.InteractionHandler)
 	gTalker, closer := speechGrpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer closer()
-	ceviord.SetNewTalker(gTalker)
-
+	// TODO; talkerの設定は別モジュールに変更
+	handleCmd.SetNewTalker(gTalker)
 	var db *sql.DB
 	for i := 1; i <= dbChallengeTimes; i++ {
 		dbConf := conf.auth.CeviordConn.DB
@@ -98,7 +98,7 @@ func main() {
 		log.Println(fmt.Errorf("db set failed `%w`", err))
 		return
 	}
-	ceviord.SetDbController(r)
+	handleCmd.SetDbController(r)
 
 	// Open the websocket and begin listening.
 	err = dgSess.Open()
@@ -106,11 +106,20 @@ func main() {
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error opening Discord session: `%w`", err))
 	}
+	slashCmds, err := handleCmd.NewCmds(dgSess, "", handleCmd.Cmds)
+	defer func() {
+		if slashCmds != nil {
+			slashCmds.DeleteCmds(dgSess, "")
+		}
+	}()
+	if err != nil {
+		log.Println(fmt.Errorf("slash command applier failed `%w`", err))
+		// return
+	}
 
 	// Wait here until CTRL-C or other term signal is received.
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
-
 	return
 }

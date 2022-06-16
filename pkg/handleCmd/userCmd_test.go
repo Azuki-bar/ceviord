@@ -1,4 +1,4 @@
-package ceviord
+package handleCmd
 
 import (
 	"reflect"
@@ -26,7 +26,7 @@ func Test_bye_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &bye{}
+			b := &byeOld{}
 			if err := b.parse(tt.args.in0); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -79,11 +79,11 @@ func Test_change_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &change{}
+			c := &changeOld{}
 			if err := c.parse(tt.args.cmds); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(c, &change{changeTo: tt.fields.changeTo}) {
+			if !reflect.DeepEqual(c, &changeOld{changeTo: tt.fields.changeTo}) {
 				t.Errorf("parse failed")
 			}
 		})
@@ -429,12 +429,12 @@ func Test_dict_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &dict{}
+			d := &dictOld{}
 			if err := d.parse(tt.args.cmds); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(d, &dict{sub: tt.fields.sub}) {
-				t.Errorf("parse failed; want %+v, but %+v", &dict{sub: tt.fields.sub}, d)
+			if !reflect.DeepEqual(d, &dictOld{sub: tt.fields.sub}) {
+				t.Errorf("parse failed; want %+v, but %+v", &dictOld{sub: tt.fields.sub}, d)
 			}
 		})
 	}
