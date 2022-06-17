@@ -21,6 +21,10 @@ var Cmds = []*discordgo.ApplicationCommand{
 		Name:        "help",
 		Description: "get command reference",
 	},
+	{
+		Name:        "ping",
+		Description: "check connection status",
+	},
 }
 
 func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -35,6 +39,10 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 type CommandHandler interface {
 	handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 }
+type join struct{}
+type leave struct{}
+type help struct{}
+type ping struct{}
 
 func parseCommands(name string) (CommandHandler, error) {
 	var h CommandHandler
@@ -45,15 +53,13 @@ func parseCommands(name string) (CommandHandler, error) {
 		h = new(leave)
 	case "help":
 		h = new(help)
+	case "ping":
+		h = new(ping)
 	default:
 		return nil, fmt.Errorf("command `%s` is not found", name)
 	}
 	return h, nil
 }
-
-type join struct{}
-type leave struct{}
-type help struct{}
 
 func (j *join) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := j.rawHandle(s, i)
@@ -143,7 +149,7 @@ func (_ *leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	return nil
 }
 
-func (h *help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (_ *help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -158,5 +164,14 @@ func (h *help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	)
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("help handler failed err is `%w`", err))
+	}
+}
+func (_ *ping) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{Content: "your message have been trapped on ceviord server"},
+	})
+	if err != nil {
+		logger.Log(logging.WARN, fmt.Errorf("ping handler failed err is `%w`", err))
 	}
 }
