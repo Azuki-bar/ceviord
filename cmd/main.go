@@ -3,19 +3,19 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/replace"
-	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
-	"github.com/go-gorp/gorp"
-	"github.com/vrischmann/envconfig"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"github.com/azuki-bar/ceviord/pkg/replace"
+	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
 	"github.com/bwmarrin/discordgo"
+	"github.com/go-gorp/gorp"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/vrischmann/envconfig"
 	"gopkg.in/yaml.v2"
 )
 
@@ -68,11 +68,8 @@ func main() {
 		return
 	}
 
-	ap := &discordgo.Application{}
-	ap.Name = "ceviord"
-	ap.Description = "read text with cevigo"
-	ap, err = dgSess.ApplicationCreate(ap)
 	dgSess.AddHandler(ceviord.MessageCreate)
+	dgSess.AddHandler(ceviord.InteractionHandler)
 	gTalker, closer := speechGrpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
@@ -105,6 +102,17 @@ func main() {
 	defer dgSess.Close()
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error opening Discord session: `%w`", err))
+	}
+
+	slashCmds, err := ceviord.NewCmds(dgSess, "", ceviord.Cmds)
+	defer func() {
+		if slashCmds != nil {
+			slashCmds.DeleteCmds(dgSess, "")
+		}
+	}()
+	if err != nil {
+		log.Println(fmt.Errorf("slash command applier failed `%w`", err))
+		return
 	}
 
 	// Wait here until CTRL-C or other term signal is received.

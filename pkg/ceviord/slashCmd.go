@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-var cmds = []*discordgo.ApplicationCommand{
+var Cmds = []*discordgo.ApplicationCommand{
 	{
 		Name:        "join",
 		Description: "voice actor join",
@@ -75,15 +75,14 @@ func (_ *join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) e
 			return fmt.Errorf("sasara is already joined")
 		}
 	}
-	log.Printf("guildId `%s` vc.ID `%s`\n", i.Member.GuildID, vc.ID)
-	voiceConn, err := s.ChannelVoiceJoin(i.Member.GuildID, vc.ID, false, true)
+	voiceConn, err := s.ChannelVoiceJoin(i.GuildID, vc.ID, false, true)
 	if err != nil {
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
 	ceviord.Channels.addChannel(
 		Channel{pickedChannel: i.ChannelID, VoiceConn: voiceConn},
-		i.Member.GuildID,
+		i.GuildID,
 	)
 	return nil
 }
