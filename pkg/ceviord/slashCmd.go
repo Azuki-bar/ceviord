@@ -17,6 +17,10 @@ var Cmds = []*discordgo.ApplicationCommand{
 		Name:        "bye",
 		Description: "voice actor disconnect",
 	},
+	{
+		Name:        "help",
+		Description: "get command reference",
+	},
 }
 
 func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -39,6 +43,8 @@ func parseCommands(name string) (CommandHandler, error) {
 		h = new(join)
 	case "bye":
 		h = new(leave)
+	case "help":
+		h = new(help)
 	default:
 		return nil, fmt.Errorf("command `%s` is not found", name)
 	}
@@ -47,6 +53,7 @@ func parseCommands(name string) (CommandHandler, error) {
 
 type join struct{}
 type leave struct{}
+type help struct{}
 
 func (j *join) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := j.rawHandle(s, i)
@@ -134,4 +141,22 @@ func (_ *leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 		return fmt.Errorf("disconnecting: %w", err)
 	}
 	return nil
+}
+
+func (h *help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Embeds: []*discordgo.MessageEmbed{{
+				Title:       "コマンドリファレンス",
+				Description: "コマンドはこのページを参考に入力してください。",
+				URL:         "https://github.com/Azuki-bar/ceviord/blob/main/doc/cmd.md",
+			},
+			},
+		},
+	},
+	)
+	if err != nil {
+		logger.Log(logging.WARN, fmt.Errorf("help handler failed err is `%w`", err))
+	}
 }

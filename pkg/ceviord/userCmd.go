@@ -13,11 +13,11 @@ type userMainCmd interface {
 	handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error
 }
 
-type change struct {
+type changeOld struct {
 	changeTo string
 }
 
-func (c *change) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (c *changeOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
 	if err != nil {
 		return fmt.Errorf("conn not found")
@@ -37,7 +37,7 @@ func (c *change) handle(sess *discordgo.Session, m *discordgo.MessageCreate) err
 	return nil
 }
 
-func (c *change) parse(cmds []string) error {
+func (c *changeOld) parse(cmds []string) error {
 	if len(cmds) < 2 {
 		return fmt.Errorf("apply commands are not correct")
 	}
@@ -349,9 +349,9 @@ func (d *dictList) getOptStr() string {
 	}
 }
 
-type help struct{}
+type helpOld struct{}
 
-func (*help) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (*helpOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	return SendEmbedMsg(&discordgo.MessageEmbed{
 		Title:       "コマンドリファレンス",
 		Description: "コマンドはこのページを参考に入力してください。",
@@ -359,7 +359,7 @@ func (*help) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	}, sess, m.GuildID)
 }
 
-func (*help) parse(_ []string) error { return nil }
+func (*helpOld) parse(_ []string) error { return nil }
 
 func stringMax(msg string, max int) string {
 	lenMsg := len([]rune(msg))
