@@ -64,6 +64,7 @@ func (*sasaraOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) 
 		}
 	}
 
+	log.Printf("guildId `%s` vc.ID `%s`\n", msg.GuildID, vc.ID)
 	voiceConn, err := sess.ChannelVoiceJoin(msg.GuildID, vc.ID, false, true)
 	if err != nil {
 		log.Println(fmt.Errorf("joining: %w", err))

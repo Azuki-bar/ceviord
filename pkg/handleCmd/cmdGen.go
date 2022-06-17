@@ -75,7 +75,7 @@ var (
 )
 
 func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	h, err := ParseCommands(i.ApplicationCommandData().Name)
+	h, err := parseCommands(i.ApplicationCommandData().Name)
 	if err != nil {
 		log.Println(err)
 		return
@@ -83,24 +83,24 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	h.handle(s, i)
 }
 
-func ParseCommands(commandName string) (CommandHandler, error) {
+type CommandHandler interface {
+	handle(s *discordgo.Session, i *discordgo.InteractionCreate)
+}
+
+func parseCommands(commandName string) (CommandHandler, error) {
 	log.Printf("parse command `%s`\n", commandName)
 	var h CommandHandler
 	switch commandName {
 	case "join":
 		h = new(join)
-	// case "help":
-	// 	h = new(help)
+	/* case "help":
+	h = new(help) */
 	case "leave":
 		h = new(leave)
 	default:
 		return nil, fmt.Errorf("command not found")
 	}
 	return h, nil
-}
-
-type CommandHandler interface {
-	handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 }
 
 type join struct{}
@@ -115,7 +115,7 @@ func (j *join) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{Content: err.Error()},
+		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
 	if err != nil {
 		logger.Log(logging.WARN, "error in `join` interaction respond")
@@ -123,31 +123,30 @@ func (j *join) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func (_ *join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	log.Printf("%#+v", i.Message)
 	if i.Member == nil {
 		return fmt.Errorf("member field is nil. so cannot detect user status.")
 	}
 	vc := findJoinedVC(s, i.GuildID, i.Member.User.ID)
 	if vc == nil {
-		//todo fix err msg
-		return fmt.Errorf("not found voice conn ")
+		return fmt.Errorf("voice connection not found")
 	}
 	if ceviord.Channels.isExistChannel(i.Member.GuildID) {
 		c, err := ceviord.Channels.getChannel(i.Member.GuildID)
 		if err != nil {
-			return fmt.Errorf("some error occurred in channgel getter")
+			return fmt.Errorf("some error occurred in user joined channgel searcher")
 		}
 		isJoin, err := c.isActorJoined(s)
 		if err != nil || isJoin {
-			return fmt.Errorf("sasara is already joined\n")
+			return fmt.Errorf("sasara is already joined")
 		}
 	}
+
+	log.Printf("guildId `%s` vc.ID `%s`\n", i.Member.GuildID, vc.ID)
 	voiceConn, err := s.ChannelVoiceJoin(i.Member.GuildID, vc.ID, false, true)
 	if err != nil {
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
-	//handleCmd.VoiceConn.LogLevel = discordgo.LogDebug
 	ceviord.Channels.addChannel(
 		Channel{pickedChannel: i.ChannelID, VoiceConn: voiceConn},
 		i.Member.GuildID,
@@ -163,6 +162,7 @@ func (_ *join) successMsg(l *discordgo.Locale) string {
 		return "successfully joined to Voice Channel!"
 	}
 }
+
 func (_ *join) errMsg(l *discordgo.Locale) string {
 	switch *l {
 	case discordgo.Japanese:
@@ -186,7 +186,7 @@ func (l *leave) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
 	if err != nil {
-		logger.Log(logging.INFO, "error in `leave` handler `%w`", err)
+		logger.Log(logging.WARN, "error in `leave` handler `%w`", err)
 	}
 }
 func (_ *leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {

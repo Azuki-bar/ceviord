@@ -65,7 +65,7 @@ func main() {
 	handleCmd.SetParam(conf.param)
 
 	dgSess, err := discordgo.New("Bot " + conf.auth.CeviordConn.Discord)
-	dgSess.Debug = true
+	dgSess.Debug = false
 	if err != nil {
 		log.Println("create discordgo session failed `%w`", err)
 		return
