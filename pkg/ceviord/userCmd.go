@@ -48,7 +48,7 @@ func (c *change) parse(cmds []string) error {
 type sasara struct{}
 
 func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
-	vc := FindJoinedVC(sess, msg)
+	vc := FindJoinedVC(sess, msg.GuildID, msg.Author.ID)
 	if vc == nil {
 		//todo fix err msg
 		return fmt.Errorf("voice conn ")

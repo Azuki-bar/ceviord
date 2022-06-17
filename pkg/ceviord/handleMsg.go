@@ -128,13 +128,13 @@ func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
 func SetParam(param *Param)                  { ceviord.param = param }
 
-func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
-	st, err := s.GuildChannels(m.GuildID)
+func FindJoinedVC(s *discordgo.Session, guildId, authorId string) *discordgo.Channel {
+	st, err := s.GuildChannels(guildId)
 	if err != nil {
 		logger.Log(logging.INFO, err)
 		return nil
 	}
-	vcs, err := s.State.VoiceState(m.GuildID, m.Author.ID)
+	vcs, err := s.State.VoiceState(guildId,authorId)
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("find joinedVc err occurred `%w`", err))
 		return nil
