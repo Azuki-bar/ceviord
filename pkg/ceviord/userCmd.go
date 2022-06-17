@@ -45,9 +45,9 @@ func (c *change) parse(cmds []string) error {
 	return nil
 }
 
-type sasara struct{}
+type sasaraOld struct{}
 
-func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
+func (*sasaraOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
 	vc := FindJoinedVC(sess, msg.GuildID, msg.Author.ID)
 	if vc == nil {
 		//todo fix err msg
@@ -74,12 +74,12 @@ func (*sasara) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) err
 		Channel{pickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
 	return nil
 }
-func (*sasara) parse(_ []string) error { return nil }
+func (*sasaraOld) parse(_ []string) error { return nil }
 
-type bye struct{}
+type byeOld struct{}
 
-func (*bye) parse(_ []string) error { return nil }
-func (*bye) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (*byeOld) parse(_ []string) error { return nil }
+func (*byeOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
 	if err != nil || cev == nil {
 		return fmt.Errorf("connection not found")
@@ -105,34 +105,34 @@ func (*bye) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	return nil
 }
 
-type ping struct{}
+type pingOld struct{}
 
-func (*ping) parse(_ []string) error { return nil }
-func (*ping) handle(s *discordgo.Session, m *discordgo.MessageCreate) error {
+func (*pingOld) parse(_ []string) error { return nil }
+func (*pingOld) handle(s *discordgo.Session, m *discordgo.MessageCreate) error {
 	return SendMsg("Your msg is trapped!", s, m.GuildID)
 }
 
-type dict struct {
+type dictOld struct {
 	sub userMainCmd
 }
 
-func (d *dict) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
+func (d *dictOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
 	if d.sub == nil {
 		return fmt.Errorf("dict sub cmd not provided")
 	}
 	return d.sub.handle(sess, msg)
 }
 
-func (d *dict) parse(cmds []string) error {
+func (d *dictOld) parse(cmds []string) error {
 	if len(cmds) <= 1 {
 		return fmt.Errorf("sub cmd are not satisfied. \n")
 	}
 	var dictCmd userMainCmd
 	switch cmds[1] {
 	case "add":
-		dictCmd = new(dictAdd)
+		dictCmd = new(dictAddOld)
 	case "del", "delete", "rm":
-		dictCmd = new(dictDel)
+		dictCmd = new(dictDelOld)
 	case "list", "ls", "show":
 		dictCmd = new(dictList)
 	default:
@@ -145,12 +145,12 @@ func (d *dict) parse(cmds []string) error {
 	return nil
 }
 
-type dictAdd struct {
+type dictAddOld struct {
 	word string
 	yomi string
 }
 
-func (d *dictAdd) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
+func (d *dictAddOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) error {
 	if len(d.word) == 0 || len(d.yomi) == 0 {
 		return fmt.Errorf("dict add field are not satisfied")
 	}
@@ -183,7 +183,7 @@ func (d *dictAdd) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) 
 	return nil
 }
 
-func (d *dictAdd) parse(cmd []string) error {
+func (d *dictAddOld) parse(cmd []string) error {
 	if len(cmd) <= 2 {
 		return fmt.Errorf("dict add option are not satisfied\n")
 	}
@@ -192,11 +192,11 @@ func (d *dictAdd) parse(cmd []string) error {
 	return nil
 }
 
-type dictDel struct {
+type dictDelOld struct {
 	ids []uint
 }
 
-func (d *dictDel) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (d *dictDelOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	if d.ids == nil || len(d.ids) == 0 {
 		return fmt.Errorf("dict del id is not provided")
 	}
@@ -224,7 +224,7 @@ func (d *dictDel) handle(sess *discordgo.Session, m *discordgo.MessageCreate) er
 	return nil
 }
 
-func (d *dictDel) parse(cmd []string) error {
+func (d *dictDelOld) parse(cmd []string) error {
 	if len(cmd) < 2 {
 		return fmt.Errorf("dict del option are not satisfied\n")
 	}

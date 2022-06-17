@@ -158,17 +158,17 @@ func parseUserCmd(msg string) (userMainCmd, error) {
 	var mainCmd userMainCmd
 	switch rawCmd[0] {
 	case "sasara":
-		mainCmd = new(sasara)
+		mainCmd = new(sasaraOld)
 	case "bye":
-		mainCmd = new(bye)
+		mainCmd = new(byeOld)
 	case "dict":
-		mainCmd = new(dict)
+		mainCmd = new(dictOld)
 	case "change":
-		mainCmd = new(change)
+		mainCmd = new(changeOld)
 	case "help", "man":
-		mainCmd = new(help)
+		mainCmd = new(helpOld)
 	case "ping":
-		mainCmd = new(ping)
+		mainCmd = new(pingOld)
 	default:
 		return nil, fmt.Errorf("unknown user cmd `%s` \n", rawCmd[0])
 	}
