@@ -241,24 +241,22 @@ func (_ *ping) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 func (_ *dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	_, err := ceviord.Channels.getChannel(i.GuildID)
+	cev, err := ceviord.Channels.getChannel(i.GuildID)
+	cev.dictController.SetGuildId(i.GuildID)
 	if err != nil {
 		// voice channel connection not found
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("dict handler failed. err is `%s`", err.Error()),
-			},
-		})
+		replySimpleMsg(fmt.Sprintf("dict handler failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
 	subCmd, err := dictSubCmdParse(i.ApplicationCommandData().Options[0])
 	if err != nil {
+		replySimpleMsg(fmt.Sprintf("dict sub cmd parser failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
-	pp.Print(i)
-	d, err := subCmd.execute(s, i.GuildID, i.Member.User.ID)
+	d, err := subCmd.execute(i.GuildID, i.Member.User.ID)
 	if err != nil {
+		pp.Print(err)
+		replySimpleMsg(fmt.Sprintf("dict sub cmd handler failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -266,7 +264,12 @@ func (_ *dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Data: d,
 	})
 }
-
+func replySimpleMsg(msg string, s *discordgo.Session, i *discordgo.Interaction) {
+	s.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{Content: msg},
+	})
+}
 func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (dictSubCmd, error) {
 	if opt.Type != discordgo.ApplicationCommandOptionSubCommand {
 		return nil, fmt.Errorf("option type failed")
@@ -274,20 +277,22 @@ func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (di
 	switch opt.Name {
 	case "add":
 		return newDictAdd(opt.Options)
+	case "del":
+		return newDictDel(opt.Options)
 	default:
 		return nil, fmt.Errorf("dict sub command parse failed")
 	}
 }
 
 type dictSubCmd interface {
-	execute(s *discordgo.Session, guildId, authorId string) (*discordgo.InteractionResponseData, error)
+	execute(guildId, authorId string) (*discordgo.InteractionResponseData, error)
 }
 type dictAdd struct {
 	yomi string
 	word string
 }
 type dictDel struct {
-	id int32
+	id uint
 }
 type dictShow struct{}
 
@@ -305,7 +310,7 @@ func newDictAdd(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dict
 	}
 	return &da, nil
 }
-func (da *dictAdd) execute(s *discordgo.Session, guildId, authorId string) (*discordgo.InteractionResponseData, error) {
+func (da *dictAdd) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
 	if len(da.word) == 0 || len(da.yomi) == 0 {
 		return nil, fmt.Errorf("dict add field are not satisfied")
 	}
@@ -313,6 +318,7 @@ func (da *dictAdd) execute(s *discordgo.Session, guildId, authorId string) (*dis
 		return nil, fmt.Errorf("channel connection not found")
 	}
 	cev, err := ceviord.Channels.getChannel(guildId)
+	cev.dictController.SetGuildId(guildId)
 	if err != nil {
 		return nil, err
 	}
@@ -328,12 +334,45 @@ func (da *dictAdd) execute(s *discordgo.Session, guildId, authorId string) (*dis
 		return nil, fmt.Errorf("dict add failed `%w`", err)
 	}
 
+	return &discordgo.InteractionResponseData{Embeds: []*discordgo.MessageEmbed{{
+		Title:       "単語追加",
+		Description: "辞書に以下のレコードを追加しました。",
+		Fields:      []*discordgo.MessageEmbedField{{Name: da.word, Value: da.yomi}}},
+	}}, nil
+}
+
+func newDictDel(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictDel, error) {
+	var dd dictDel
+	for _, o := range opt {
+		switch o.Name {
+		case "id":
+			dd.id = uint(o.IntValue())
+		default:
+			return nil, fmt.Errorf("undefined option appear in dict del handler")
+		}
+	}
+	return &dd, nil
+}
+
+func (dd *dictDel) execute(guildId, _ string) (*discordgo.InteractionResponseData, error) {
+	if dd.id == 0 {
+		return nil, fmt.Errorf("dict del id is not provided")
+	}
+	cev, err := ceviord.Channels.getChannel(guildId)
+	if err != nil {
+		return nil, err
+	}
+	cev.dictController.SetGuildId(guildId)
+	del, err := cev.dictController.Delete(dd.id)
+	if err != nil {
+		return nil, fmt.Errorf("dict delete failed `%w`", err)
+	}
+	log.Printf("dict delete succeed. dict is %+v\n", del)
+
 	return &discordgo.InteractionResponseData{
-		Embeds: []*discordgo.MessageEmbed{
-			{
-				Title:       "単語追加",
-				Description: "辞書に以下のレコードを追加しました。",
-				Fields:      []*discordgo.MessageEmbedField{{Name: da.word, Value: da.yomi}}},
-		},
-	}, nil
+		Embeds: []*discordgo.MessageEmbed{{
+			Title:       "単語削除",
+			Description: "辞書から以下のレコードを削除しました。",
+			Fields:      []*discordgo.MessageEmbedField{{Name: del.Word, Value: del.Yomi}},
+		}}}, nil
 }

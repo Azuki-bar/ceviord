@@ -59,6 +59,10 @@ func NewReplacer(db *sql.DB, dialect gorp.Dialect) (*Replacer, error) {
 	rs.gorpDb = dbMap
 	return rs, nil
 }
+
+// TODO; guildIdを受け取り、そのGuildIDを保存する構造体を作成。その構造体にAddやdelのメソッドを実装する。
+// AddやDelは使い捨ての構造体のメソッドに
+
 func (rs *Replacer) SetGuildId(guildId string) { rs.guildId = guildId }
 
 func (rs *Replacer) Add(dict *UserDictInput) error {

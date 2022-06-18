@@ -68,6 +68,7 @@ func main() {
 		return
 	}
 
+	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { log.Println("connect to discord") })
 	dgSess.AddHandler(ceviord.MessageCreate)
 	dgSess.AddHandler(ceviord.InteractionHandler)
 	gTalker, closer := speechGrpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
