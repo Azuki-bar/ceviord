@@ -48,7 +48,7 @@ func (cs Channels) getChannel(guildId string) (*Channel, error) {
 	if c, ok := cs[guildId]; ok {
 		return c, nil
 	}
-	return nil, fmt.Errorf("channel not found")
+	return nil, fmt.Errorf("voice actor connected channel is not found")
 }
 func (cs Channels) isExistChannel(guildId string) bool {
 	_, ok := cs[guildId]

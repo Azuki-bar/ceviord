@@ -5,13 +5,15 @@ import (
 	"log"
 
 	"github.com/azuki-bar/ceviord/pkg/logging"
+	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
+	"github.com/k0kubun/pp"
 )
 
 var Cmds = []*discordgo.ApplicationCommand{
 	{
 		Name:        "join",
-		Description: "voice actor join",
+		Description: "join voice actor",
 	},
 	{
 		Name:        "bye",
@@ -24,6 +26,62 @@ var Cmds = []*discordgo.ApplicationCommand{
 	{
 		Name:        "ping",
 		Description: "check connection status",
+	},
+	{
+		Name:        "dict",
+		Description: "manage dict records",
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Name:        "add",
+				Description: "add record",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Name:        "word",
+						Description: "word",
+						Type:        discordgo.ApplicationCommandOptionString,
+						Required:    true,
+					},
+					{
+						Name:        "yomi",
+						Description: "how to read that word",
+						Type:        discordgo.ApplicationCommandOptionString,
+						Required:    true,
+					},
+				},
+			},
+			{
+				Name:        "del",
+				Description: "delete record",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Name:        "id",
+						Description: "dictionary record id",
+						Type:        discordgo.ApplicationCommandOptionInteger,
+						Required:    true,
+					},
+				},
+			},
+			{
+				Name:        "show",
+				Description: "show records",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+			},
+			/* {
+				Name:        "search",
+				Description: "search record with effect",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Name:        "search string",
+						Description: "search",
+						Type:        discordgo.ApplicationCommandOptionString,
+						Required:    true,
+					},
+				},
+			}, */
+		},
 	},
 }
 
@@ -43,6 +101,8 @@ type join struct{}
 type leave struct{}
 type help struct{}
 type ping struct{}
+type dict struct{}
+type change struct{}
 
 func parseCommands(name string) (CommandHandler, error) {
 	var h CommandHandler
@@ -55,6 +115,10 @@ func parseCommands(name string) (CommandHandler, error) {
 		h = new(help)
 	case "ping":
 		h = new(ping)
+	case "dict":
+		h = new(dict)
+	// case "change":
+	// 	h = new(change)
 	default:
 		return nil, fmt.Errorf("command `%s` is not found", name)
 	}
@@ -174,4 +238,102 @@ func (_ *ping) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("ping handler failed err is `%w`", err))
 	}
+}
+
+func (_ *dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	_, err := ceviord.Channels.getChannel(i.GuildID)
+	if err != nil {
+		// voice channel connection not found
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("dict handler failed. err is `%s`", err.Error()),
+			},
+		})
+		return
+	}
+	subCmd, err := dictSubCmdParse(i.ApplicationCommandData().Options[0])
+	if err != nil {
+		return
+	}
+	pp.Print(i)
+	d, err := subCmd.execute(s, i.GuildID, i.Member.User.ID)
+	if err != nil {
+		return
+	}
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: d,
+	})
+}
+
+func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (dictSubCmd, error) {
+	if opt.Type != discordgo.ApplicationCommandOptionSubCommand {
+		return nil, fmt.Errorf("option type failed")
+	}
+	switch opt.Name {
+	case "add":
+		return newDictAdd(opt.Options)
+	default:
+		return nil, fmt.Errorf("dict sub command parse failed")
+	}
+}
+
+type dictSubCmd interface {
+	execute(s *discordgo.Session, guildId, authorId string) (*discordgo.InteractionResponseData, error)
+}
+type dictAdd struct {
+	yomi string
+	word string
+}
+type dictDel struct {
+	id int32
+}
+type dictShow struct{}
+
+func newDictAdd(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictAdd, error) {
+	var da dictAdd
+	for _, o := range opt {
+		switch o.Name {
+		case "yomi":
+			da.yomi = o.StringValue()
+		case "word":
+			da.word = o.StringValue()
+		default:
+			return nil, fmt.Errorf("undefined option appear in dict add handler")
+		}
+	}
+	return &da, nil
+}
+func (da *dictAdd) execute(s *discordgo.Session, guildId, authorId string) (*discordgo.InteractionResponseData, error) {
+	if len(da.word) == 0 || len(da.yomi) == 0 {
+		return nil, fmt.Errorf("dict add field are not satisfied")
+	}
+	if ceviord.Channels == nil {
+		return nil, fmt.Errorf("channel connection not found")
+	}
+	cev, err := ceviord.Channels.getChannel(guildId)
+	if err != nil {
+		return nil, err
+	}
+	err = cev.dictController.Add(
+		&replace.UserDictInput{
+			Word:          da.word,
+			Yomi:          da.yomi,
+			ChangedUserId: authorId,
+			GuildId:       guildId,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("dict add failed `%w`", err)
+	}
+
+	return &discordgo.InteractionResponseData{
+		Embeds: []*discordgo.MessageEmbed{
+			{
+				Title:       "単語追加",
+				Description: "辞書に以下のレコードを追加しました。",
+				Fields:      []*discordgo.MessageEmbedField{{Name: da.word, Value: da.yomi}}},
+		},
+	}, nil
 }
