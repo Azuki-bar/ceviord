@@ -3,6 +3,7 @@ package ceviord
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/azuki-bar/ceviord/pkg/replace"
@@ -16,6 +17,7 @@ const (
 	helpCmdName   = "help"
 	dictCmdName   = "dict"
 	changeCmdName = "cast"
+	pingCmdName   = "ping"
 )
 
 type SlashCmdGenerator struct {
@@ -64,23 +66,23 @@ func (s *SlashCmdGenerator) Generate() []*discordgo.ApplicationCommand {
 
 var cmds = []*discordgo.ApplicationCommand{
 	{
-		Name:        "join",
+		Name:        joinCmdName,
 		Description: "join voice actor",
 	},
 	{
-		Name:        "bye",
+		Name:        byeCmdName,
 		Description: "voice actor disconnect",
 	},
 	{
-		Name:        "help",
+		Name:        helpCmdName,
 		Description: "get command reference",
 	},
 	{
-		Name:        "ping",
+		Name:        pingCmdName,
 		Description: "check connection status",
 	},
 	{
-		Name:        "dict",
+		Name:        dictCmdName,
 		Description: "manage dict records",
 		Options: []*discordgo.ApplicationCommandOption{
 			{
@@ -171,7 +173,18 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		logger.Log(logging.INFO, fmt.Errorf("parse command failed err is `%w`", err))
 		return
 	}
-	h.handle(s, i)
+	finish := make(chan bool, 0)
+	// TODO; タイムアウト時に handle内でメッセージを送信しないように変更。
+	go h.handle(finish, s, i)
+	select {
+	case <-finish:
+		return
+	case <-time.After(2500 * time.Millisecond):
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{Content: "handler connection timeout"},
+		})
+	}
 }
 
 type (
@@ -185,7 +198,7 @@ type (
 	}
 )
 type CommandHandler interface {
-	handle(s *discordgo.Session, i *discordgo.InteractionCreate)
+	handle(finished chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate)
 }
 
 func parseCommands(name string) (CommandHandler, error) {
@@ -209,7 +222,7 @@ func parseCommands(name string) (CommandHandler, error) {
 	return h, nil
 }
 
-func (j *join) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := j.rawHandle(s, i)
 	var msg string
 	msg = "successfully joined!"
@@ -221,8 +234,9 @@ func (j *join) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
+	c <- true
 	if err != nil {
-		logger.Log(logging.WARN, fmt.Errorf("error in `join` interactoin respond err is `%w`", err))
+		logger.Log(logging.WARN, fmt.Errorf("error in `join` interaction respond err is `%w`", err))
 	}
 }
 func (*join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
@@ -255,7 +269,7 @@ func (*join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) err
 	return nil
 }
 
-func (l *leave) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (l *leave) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := l.rawHandle(s, i)
 	var msg string
 	msg = "successfully leaved!"
@@ -297,7 +311,7 @@ func (*leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) er
 	return nil
 }
 
-func (*help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (*help) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -310,21 +324,23 @@ func (*help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		},
 	},
 	)
+	c <- true
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("help handler failed err is `%w`", err))
 	}
 }
-func (*ping) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (*ping) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: "your message have been trapped on ceviord server"},
 	})
+	c <- true
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("ping handler failed err is `%w`", err))
 	}
 }
 
-func (c *change) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	for _, o := range i.ApplicationCommandData().Options {
 		switch o.Name {
 		case "cast":
@@ -340,6 +356,7 @@ func (c *change) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
+	finish <- true
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("change handler failed. err is `%w`", err))
 	}
@@ -364,7 +381,7 @@ func (c *change) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate)
 	return nil
 }
 
-func (*dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (*dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	cev, err := ceviord.Channels.getChannel(i.GuildID)
 	cev.dictController.SetGuildId(i.GuildID)
 	if err != nil {
@@ -387,6 +404,7 @@ func (*dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: d,
 	})
+	c <- true
 }
 
 func replySimpleMsg(msg string, s *discordgo.Session, i *discordgo.Interaction) {
