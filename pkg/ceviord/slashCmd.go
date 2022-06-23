@@ -10,7 +10,59 @@ import (
 	"github.com/k0kubun/pp"
 )
 
-var Cmds = []*discordgo.ApplicationCommand{
+const (
+	joinCmdName   = "join"
+	byeCmdName    = "bye"
+	helpCmdName   = "help"
+	dictCmdName   = "dict"
+	changeCmdName = "cast"
+)
+
+type SlashCmdGenerator struct {
+	cmds []*discordgo.ApplicationCommand
+}
+
+func NewSlashCmdGenerator() *SlashCmdGenerator {
+	s := SlashCmdGenerator{cmds: cmds}
+	return &s
+}
+func (s *SlashCmdGenerator) AddCastOpt(ps []Parameter) error {
+	var c *discordgo.ApplicationCommand
+	for _, rawC := range s.cmds {
+		if rawC.Name == changeCmdName {
+			c = rawC
+			break
+		}
+	}
+	if c == nil {
+		return fmt.Errorf("change cast command not found")
+	}
+	castOptPos := -1
+	for i, o := range c.Options {
+		if o.Name == "cast" {
+			castOptPos = i
+			break
+		}
+	}
+	if castOptPos < 0 {
+		return fmt.Errorf("cast option not found")
+	}
+	co := c.Options[castOptPos]
+	for _, p := range ps {
+		co.Choices = append(co.Choices,
+			&discordgo.ApplicationCommandOptionChoice{
+				Name:  p.Name,
+				Value: p.Name,
+			})
+	}
+	return nil
+}
+
+func (s *SlashCmdGenerator) Generate() []*discordgo.ApplicationCommand {
+	return s.cmds
+}
+
+var cmds = []*discordgo.ApplicationCommand{
 	{
 		Name:        "join",
 		Description: "join voice actor",
@@ -67,6 +119,20 @@ var Cmds = []*discordgo.ApplicationCommand{
 				Name:        "show",
 				Description: "show records",
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Name:        "limit",
+						Description: "specify number of records",
+						Type:        discordgo.ApplicationCommandOptionInteger,
+						Required:    false,
+					},
+					{
+						Name:        "all",
+						Description: "show all records",
+						Type:        discordgo.ApplicationCommandOptionBoolean,
+						Required:    false,
+					},
+				},
 			},
 			/* {
 				Name:        "search",
@@ -83,6 +149,20 @@ var Cmds = []*discordgo.ApplicationCommand{
 			}, */
 		},
 	},
+	{
+		Name:        changeCmdName,
+		Description: "change voice actor",
+		// Type:        discordgo.MessageApplicationCommand,
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Name:        "cast",
+				Description: "cast name",
+				Type:        discordgo.ApplicationCommandOptionString,
+				Choices:     []*discordgo.ApplicationCommandOptionChoice{},
+				Required:    true,
+			},
+		},
+	},
 }
 
 func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -94,31 +174,35 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	h.handle(s, i)
 }
 
+type (
+	join   struct{}
+	leave  struct{}
+	help   struct{}
+	ping   struct{}
+	dict   struct{}
+	change struct {
+		changeTo string
+	}
+)
 type CommandHandler interface {
 	handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 }
-type join struct{}
-type leave struct{}
-type help struct{}
-type ping struct{}
-type dict struct{}
-type change struct{}
 
 func parseCommands(name string) (CommandHandler, error) {
 	var h CommandHandler
 	switch name {
-	case "join":
+	case joinCmdName:
 		h = new(join)
-	case "bye":
+	case byeCmdName:
 		h = new(leave)
-	case "help":
+	case helpCmdName:
 		h = new(help)
 	case "ping":
 		h = new(ping)
 	case "dict":
 		h = new(dict)
-	// case "change":
-	// 	h = new(change)
+	case "cast":
+		h = new(change)
 	default:
 		return nil, fmt.Errorf("command `%s` is not found", name)
 	}
@@ -141,7 +225,7 @@ func (j *join) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		logger.Log(logging.WARN, fmt.Errorf("error in `join` interactoin respond err is `%w`", err))
 	}
 }
-func (_ *join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (*join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	if i.Member == nil {
 		return fmt.Errorf("member field is nil. so cannot detect user status")
 	}
@@ -187,7 +271,7 @@ func (l *leave) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		logger.Log(logging.WARN, fmt.Errorf("error in `leave` interaction respond, err is `%w`", err))
 	}
 }
-func (_ *leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (*leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	cev, err := ceviord.Channels.getChannel(i.GuildID)
 	if err != nil || cev == nil {
 		return fmt.Errorf("connection not found")
@@ -213,7 +297,7 @@ func (_ *leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) 
 	return nil
 }
 
-func (_ *help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (*help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -230,7 +314,7 @@ func (_ *help) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		logger.Log(logging.WARN, fmt.Errorf("help handler failed err is `%w`", err))
 	}
 }
-func (_ *ping) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (*ping) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: "your message have been trapped on ceviord server"},
@@ -240,7 +324,47 @@ func (_ *ping) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 }
 
-func (_ *dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (c *change) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	for _, o := range i.ApplicationCommandData().Options {
+		switch o.Name {
+		case "cast":
+			c.changeTo = o.StringValue()
+		}
+	}
+	err := c.rawHandle(s, i)
+	msg := fmt.Sprintf("successfully change cast to %s", c.changeTo)
+	if err != nil {
+		msg = err.Error()
+	}
+	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{Content: msg},
+	})
+	if err != nil {
+		logger.Log(logging.WARN, fmt.Errorf("change handler failed. err is `%w`", err))
+	}
+}
+func (c *change) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+	cev, err := ceviord.Channels.getChannel(i.GuildID)
+	if err != nil {
+		return fmt.Errorf("voice connection not found")
+	}
+	isJoin, err := cev.isActorJoined(s)
+	if err != nil || !isJoin {
+		return fmt.Errorf("voice connection not found")
+	}
+	for _, p := range ceviord.param.Parameters {
+		if c.changeTo == p.Name {
+			cev.currentParam = &p
+			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), i.GuildID, s); err != nil {
+				return fmt.Errorf("speaking about parameter setting: `%w`", err)
+			}
+		}
+	}
+	return nil
+}
+
+func (*dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	cev, err := ceviord.Channels.getChannel(i.GuildID)
 	cev.dictController.SetGuildId(i.GuildID)
 	if err != nil {
@@ -264,12 +388,14 @@ func (_ *dict) handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		Data: d,
 	})
 }
+
 func replySimpleMsg(msg string, s *discordgo.Session, i *discordgo.Interaction) {
 	s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
 }
+
 func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (dictSubCmd, error) {
 	if opt.Type != discordgo.ApplicationCommandOptionSubCommand {
 		return nil, fmt.Errorf("option type failed")
@@ -279,22 +405,31 @@ func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (di
 		return newDictAdd(opt.Options)
 	case "del":
 		return newDictDel(opt.Options)
+	case "show":
+		return newDictShow(opt.Options)
 	default:
 		return nil, fmt.Errorf("dict sub command parse failed")
 	}
 }
 
-type dictSubCmd interface {
-	execute(guildId, authorId string) (*discordgo.InteractionResponseData, error)
-}
-type dictAdd struct {
-	yomi string
-	word string
-}
-type dictDel struct {
-	id uint
-}
-type dictShow struct{}
+type (
+	dictSubCmd interface {
+		execute(guildId, authorId string) (*discordgo.InteractionResponseData, error)
+	}
+	dictAdd struct {
+		yomi string
+		word string
+	}
+	dictDel struct {
+		id uint
+	}
+	dictShow struct {
+		isLatest bool
+		from     uint
+		to       uint
+		limit    uint
+	}
+)
 
 func newDictAdd(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictAdd, error) {
 	var da dictAdd
@@ -375,4 +510,10 @@ func (dd *dictDel) execute(guildId, _ string) (*discordgo.InteractionResponseDat
 			Description: "辞書から以下のレコードを削除しました。",
 			Fields:      []*discordgo.MessageEmbedField{{Name: del.Word, Value: del.Yomi}},
 		}}}, nil
+}
+func newDictShow(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictShow, error) {
+	return nil, nil
+}
+func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
+	return nil, nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-gorp/gorp"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/k0kubun/pp"
 	"github.com/vrischmann/envconfig"
 	"gopkg.in/yaml.v2"
 )
@@ -104,8 +105,13 @@ func main() {
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error opening Discord session: `%w`", err))
 	}
-
-	slashCmds, err := ceviord.NewCmds(dgSess, "", ceviord.Cmds)
+	sg := ceviord.NewSlashCmdGenerator()
+	err = sg.AddCastOpt(conf.param.Parameters)
+	if err != nil {
+		log.Println("slash command generate failed")
+	}
+	pp.Print(sg.Generate())
+	slashCmds, err := ceviord.NewCmds(dgSess, "", sg.Generate())
 	defer func() {
 		if slashCmds != nil {
 			slashCmds.DeleteCmds(dgSess, "")
