@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/slashCmd"
 	"log"
 	"os"
 	"os/signal"
@@ -71,7 +72,7 @@ func main() {
 
 	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { log.Println("connect to discord") })
 	dgSess.AddHandler(ceviord.MessageCreate)
-	dgSess.AddHandler(ceviord.InteractionHandler)
+	dgSess.AddHandler(slashCmd.InteractionHandler)
 	// dgSess.Debug = true
 	gTalker, closer := speechGrpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer closer()
@@ -106,13 +107,13 @@ func main() {
 	if err != nil {
 		log.Fatalln(fmt.Errorf("error opening Discord session: `%w`", err))
 	}
-	sg := ceviord.NewSlashCmdGenerator()
+	sg := slashCmd.NewSlashCmdGenerator()
 	err = sg.AddCastOpt(conf.param.Parameters)
 	if err != nil {
 		log.Println("slash command generate failed")
 	}
 	pp.Print(sg.Generate())
-	slashCmds, err := ceviord.NewCmds(dgSess, "", sg.Generate())
+	slashCmds, err := slashCmd.NewCmds(dgSess, "", sg.Generate())
 	defer func() {
 		if slashCmds != nil {
 			slashCmds.DeleteCmds(dgSess, "")

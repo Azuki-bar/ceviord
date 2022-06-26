@@ -1,7 +1,8 @@
-package ceviord
+package slashCmd
 
 import (
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
 )
@@ -28,22 +29,22 @@ func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.I
 	})
 	finish <- true
 	if err != nil {
-		logger.Log(logging.WARN, fmt.Errorf("change handler failed. err is `%w`", err))
+		ceviord.Logger.Log(logging.WARN, fmt.Errorf("change handler failed. err is `%w`", err))
 	}
 }
 func (c *change) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	cev, err := ceviord.Channels.getChannel(i.GuildID)
+	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)
 	if err != nil {
 		return fmt.Errorf("voice connection not found")
 	}
-	isJoin, err := cev.isActorJoined(s)
+	isJoin, err := cev.IsActorJoined(s)
 	if err != nil || !isJoin {
 		return fmt.Errorf("voice connection not found")
 	}
-	for _, p := range ceviord.param.Parameters {
+	for _, p := range ceviord.Cache.Param.Parameters {
 		if c.changeTo == p.Name {
-			cev.currentParam = &p
-			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), i.GuildID, s); err != nil {
+			cev.CurrentParam = &p
+			if err := ceviord.RawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), i.GuildID, s); err != nil {
 				return fmt.Errorf("speaking about parameter setting: `%w`", err)
 			}
 		}

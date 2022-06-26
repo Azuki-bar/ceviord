@@ -1,7 +1,8 @@
-package ceviord
+package slashCmd
 
 import (
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
 )
@@ -23,6 +24,6 @@ func (*help) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interactio
 	)
 	c <- true
 	if err != nil {
-		logger.Log(logging.WARN, fmt.Errorf("help handler failed err is `%w`", err))
+		ceviord.Logger.Log(logging.WARN, fmt.Errorf("help handler failed err is `%w`", err))
 	}
 }

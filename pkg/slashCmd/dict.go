@@ -1,16 +1,19 @@
-package ceviord
+package slashCmd
 
 import (
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"github.com/k0kubun/pp"
 	"log"
 )
 
+type dict struct{}
+
 func (*dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
-	cev, err := ceviord.Channels.getChannel(i.GuildID)
-	cev.dictController.SetGuildId(i.GuildID)
+	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)
+	cev.DictController.SetGuildId(i.GuildID)
 	if err != nil {
 		// voice channel connection not found
 		replySimpleMsg(fmt.Sprintf("dict handler failed. err is `%s`", err.Error()), s, i.Interaction)
@@ -96,15 +99,15 @@ func (da *dictAdd) execute(guildId, authorId string) (*discordgo.InteractionResp
 	if len(da.word) == 0 || len(da.yomi) == 0 {
 		return nil, fmt.Errorf("dict add field are not satisfied")
 	}
-	if ceviord.Channels == nil {
+	if ceviord.Cache.Channels == nil {
 		return nil, fmt.Errorf("channel connection not found")
 	}
-	cev, err := ceviord.Channels.getChannel(guildId)
-	cev.dictController.SetGuildId(guildId)
+	cev, err := ceviord.Cache.Channels.GetChannel(guildId)
+	cev.DictController.SetGuildId(guildId)
 	if err != nil {
 		return nil, err
 	}
-	err = cev.dictController.Add(
+	err = cev.DictController.Add(
 		&replace.UserDictInput{
 			Word:          da.word,
 			Yomi:          da.yomi,
@@ -140,12 +143,12 @@ func (dd *dictDel) execute(guildId, _ string) (*discordgo.InteractionResponseDat
 	if dd.id == 0 {
 		return nil, fmt.Errorf("dict del id is not provided")
 	}
-	cev, err := ceviord.Channels.getChannel(guildId)
+	cev, err := ceviord.Cache.Channels.GetChannel(guildId)
 	if err != nil {
 		return nil, err
 	}
-	cev.dictController.SetGuildId(guildId)
-	del, err := cev.dictController.Delete(dd.id)
+	cev.DictController.SetGuildId(guildId)
+	del, err := cev.DictController.Delete(dd.id)
 	if err != nil {
 		return nil, fmt.Errorf("dict delete failed `%w`", err)
 	}
@@ -186,7 +189,7 @@ func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionRes
 	returnedStr[cur] = ds.getOptStr()
 
 	for _, s := range dicts.GetStringSlice() {
-		if len([]rune(returnedStr[cur]+s+"\n")) >= discordPostLenLimit {
+		if len([]rune(returnedStr[cur]+s+"\n")) >= ceviord.DiscordPostLenLimit {
 			returnedStr = append(returnedStr, s+"\n")
 			cur++
 		} else {
@@ -209,11 +212,11 @@ func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionRes
 
 func fetchRecords(guildId string, limit uint) (*replace.Dicts, error) {
 	var lists []replace.Dict
-	cev, err := ceviord.Channels.getChannel(guildId)
+	cev, err := ceviord.Cache.Channels.GetChannel(guildId)
 	if err != nil || cev == nil {
 		return nil, err
 	}
-	lists, err = cev.dictController.Dump(limit)
+	lists, err = cev.DictController.Dump(limit)
 	if err != nil {
 		return nil, fmt.Errorf("dictionary get failed `%w`", err)
 	}
@@ -241,7 +244,7 @@ func (dd *dictDump) execute(guildId, authorId string) (*discordgo.InteractionRes
 	returnedStr[cur] = dd.getOptStr()
 
 	for _, s := range dicts.GetStringSlice() {
-		if len([]rune(returnedStr[cur]+s+"\n")) >= discordPostLenLimit {
+		if len([]rune(returnedStr[cur]+s+"\n")) >= ceviord.DiscordPostLenLimit {
 			returnedStr = append(returnedStr, s+"\n")
 			cur++
 		} else {

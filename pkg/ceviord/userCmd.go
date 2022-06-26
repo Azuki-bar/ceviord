@@ -18,18 +18,18 @@ type changeOld struct {
 }
 
 func (c *changeOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
-	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	cev, err := Cache.Channels.GetChannel(m.GuildID)
 	if err != nil {
 		return fmt.Errorf("conn not found")
 	}
-	isJoin, err := cev.isActorJoined(sess)
+	isJoin, err := cev.IsActorJoined(sess)
 	if err != nil || !isJoin {
 		return fmt.Errorf("conn not found")
 	}
-	for _, p := range ceviord.param.Parameters {
+	for _, p := range Cache.Param.Parameters {
 		if c.changeTo == p.Name {
-			cev.currentParam = &p
-			if err := rawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), m.GuildID, sess); err != nil {
+			cev.CurrentParam = &p
+			if err := RawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), m.GuildID, sess); err != nil {
 				return fmt.Errorf("speaking about parameter setting: `%w`", err)
 			}
 		}
@@ -53,12 +53,12 @@ func (*sasaraOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) 
 		//todo fix err msg
 		return fmt.Errorf("voice conn ")
 	}
-	if ceviord.Channels.isExistChannel(msg.GuildID) {
-		c, err := ceviord.Channels.getChannel(msg.GuildID)
+	if Cache.Channels.IsExistChannel(msg.GuildID) {
+		c, err := Cache.Channels.GetChannel(msg.GuildID)
 		if err != nil {
 			return fmt.Errorf("some error occurred in channgel getter")
 		}
-		isJoin, err := c.isActorJoined(sess)
+		isJoin, err := c.IsActorJoined(sess)
 		if err != nil || isJoin {
 			return fmt.Errorf("sasara is already joined\n")
 		}
@@ -69,9 +69,9 @@ func (*sasaraOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreate) 
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
-	//ceviord.VoiceConn.LogLevel = discordgo.LogDebug
-	ceviord.Channels.addChannel(
-		Channel{pickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
+	//CeviordState.VoiceConn.LogLevel = discordgo.LogDebug
+	Cache.Channels.AddChannel(
+		Channel{PickedChannel: msg.ChannelID, VoiceConn: voiceConn}, msg.GuildID)
 	return nil
 }
 func (*sasaraOld) parse(_ []string) error { return nil }
@@ -80,18 +80,18 @@ type byeOld struct{}
 
 func (*byeOld) parse(_ []string) error { return nil }
 func (*byeOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
-	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	cev, err := Cache.Channels.GetChannel(m.GuildID)
 	if err != nil || cev == nil {
 		return fmt.Errorf("connection not found")
 	}
-	isJoin, err := cev.isActorJoined(sess)
+	isJoin, err := cev.IsActorJoined(sess)
 	if !isJoin || cev.VoiceConn == nil {
 		return fmt.Errorf("ceviord is already disconnected\n")
 	}
 	defer func() {
 		if cev.VoiceConn != nil {
 			cev.VoiceConn.Close()
-			ceviord.Channels.deleteChannel(m.GuildID)
+			Cache.Channels.DeleteChannel(m.GuildID)
 		}
 	}()
 	err = cev.VoiceConn.Speaking(false)
@@ -154,11 +154,11 @@ func (d *dictAddOld) handle(sess *discordgo.Session, msg *discordgo.MessageCreat
 	if len(d.word) == 0 || len(d.yomi) == 0 {
 		return fmt.Errorf("dict add field are not satisfied")
 	}
-	cev, err := ceviord.Channels.getChannel(msg.GuildID)
+	cev, err := Cache.Channels.GetChannel(msg.GuildID)
 	if err != nil {
 		return err
 	}
-	err = cev.dictController.Add(
+	err = cev.DictController.Add(
 		&replace.UserDictInput{
 			Word:          d.word,
 			Yomi:          d.yomi,
@@ -200,12 +200,12 @@ func (d *dictDelOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate)
 	if d.ids == nil || len(d.ids) == 0 {
 		return fmt.Errorf("dict del id is not provided")
 	}
-	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	cev, err := Cache.Channels.GetChannel(m.GuildID)
 	if err != nil {
 		return err
 	}
 	for _, id := range d.ids {
-		del, err := cev.dictController.Delete(id)
+		del, err := cev.DictController.Delete(id)
 		if err != nil {
 			return fmt.Errorf("dict delete failed `%w`", err)
 		}
@@ -296,18 +296,18 @@ func (d *dictListOld) parse(cmd []string) error {
 	return nil
 }
 
-const discordPostLenLimit = 2000
+const DiscordPostLenLimit = 2000
 
 func (d *dictListOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	var lists []replace.Dict
-	cev, err := ceviord.Channels.getChannel(m.GuildID)
+	cev, err := Cache.Channels.GetChannel(m.GuildID)
 	if err != nil || cev == nil {
 		return err
 	}
 	if d.isLatest {
-		lists, err = cev.dictController.Dump(d.limit)
+		lists, err = cev.DictController.Dump(d.limit)
 	} else {
-		lists, err = cev.dictController.DumpAtoB(d.from, d.to)
+		lists, err = cev.DictController.DumpAtoB(d.from, d.to)
 	}
 	if err != nil {
 		return fmt.Errorf("dictionary dump failed `%w`", err)
@@ -320,7 +320,7 @@ func (d *dictListOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate
 	cur := 0
 	printsStr[cur] = d.getOptStr()
 	for _, s := range dicts.GetStringSlice() {
-		if len([]rune(printsStr[cur]+s+"\n")) >= discordPostLenLimit {
+		if len([]rune(printsStr[cur]+s+"\n")) >= DiscordPostLenLimit {
 			printsStr = append(printsStr, s+"\n")
 			cur++
 		} else {

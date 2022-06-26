@@ -1,7 +1,8 @@
-package ceviord
+package slashCmd
 
 import (
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"time"
 
 	"github.com/azuki-bar/ceviord/pkg/logging"
@@ -25,7 +26,7 @@ func NewSlashCmdGenerator() *SlashCmdGenerator {
 	s := SlashCmdGenerator{cmds: cmds}
 	return &s
 }
-func (s *SlashCmdGenerator) AddCastOpt(ps []Parameter) error {
+func (s *SlashCmdGenerator) AddCastOpt(ps []ceviord.Parameter) error {
 	var c *discordgo.ApplicationCommand
 	for _, rawC := range s.cmds {
 		if rawC.Name == changeCmdName {
@@ -165,7 +166,7 @@ var cmds = []*discordgo.ApplicationCommand{
 func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	h, err := parseCommands(i.ApplicationCommandData().Name)
 	if err != nil {
-		logger.Log(logging.INFO, fmt.Errorf("parse command failed err is `%w`", err))
+		ceviord.Logger.Log(logging.INFO, fmt.Errorf("parse command failed err is `%w`", err))
 		return
 	}
 	finish := make(chan bool, 0)
@@ -182,7 +183,6 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 }
 
-type dict struct{}
 type CommandHandler interface {
 	handle(finished chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate)
 }

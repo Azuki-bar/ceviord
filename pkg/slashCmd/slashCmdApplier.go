@@ -1,4 +1,4 @@
-package ceviord
+package slashCmd
 
 import (
 	"log"

@@ -1,7 +1,8 @@
-package ceviord
+package slashCmd
 
 import (
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -15,7 +16,7 @@ func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interact
 	msg = "successfully joined!"
 	if err != nil {
 		msg = fmt.Sprintln(fmt.Errorf("error in join handler `%w`", err))
-		logger.Log(logging.WARN, fmt.Errorf("error in join handler"))
+		ceviord.Logger.Log(logging.WARN, fmt.Errorf("error in join handler"))
 	}
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -23,23 +24,23 @@ func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interact
 	})
 	c <- true
 	if err != nil {
-		logger.Log(logging.WARN, fmt.Errorf("error in `join` interaction respond err is `%w`", err))
+		ceviord.Logger.Log(logging.WARN, fmt.Errorf("error in `join` interaction respond err is `%w`", err))
 	}
 }
 func (*join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	if i.Member == nil {
 		return fmt.Errorf("member field is nil. so cannot detect user status")
 	}
-	vc := FindJoinedVC(s, i.GuildID, i.Member.User.ID)
+	vc := ceviord.FindJoinedVC(s, i.GuildID, i.Member.User.ID)
 	if vc == nil {
 		return fmt.Errorf("voice connection not found")
 	}
-	if ceviord.Channels.isExistChannel(i.Member.GuildID) {
-		c, err := ceviord.Channels.getChannel(i.Member.GuildID)
+	if ceviord.Cache.Channels.IsExistChannel(i.Member.GuildID) {
+		c, err := ceviord.Cache.Channels.GetChannel(i.Member.GuildID)
 		if err != nil {
 			return fmt.Errorf("some error occurred in user joined channel searcher")
 		}
-		isJoin, err := c.isActorJoined(s)
+		isJoin, err := c.IsActorJoined(s)
 		if err != nil || isJoin {
 			return fmt.Errorf("sasara is already joined")
 		}
@@ -49,8 +50,8 @@ func (*join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) err
 		log.Println(fmt.Errorf("joining: %w", err))
 		return err
 	}
-	ceviord.Channels.addChannel(
-		Channel{pickedChannel: i.ChannelID, VoiceConn: voiceConn},
+	ceviord.Cache.Channels.AddChannel(
+		ceviord.Channel{PickedChannel: i.ChannelID, VoiceConn: voiceConn},
 		i.GuildID,
 	)
 	return nil
