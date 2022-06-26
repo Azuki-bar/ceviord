@@ -134,7 +134,7 @@ func (d *dictOld) parse(cmds []string) error {
 	case "del", "delete", "rm":
 		dictCmd = new(dictDelOld)
 	case "list", "ls", "show":
-		dictCmd = new(dictList)
+		dictCmd = new(dictListOld)
 	default:
 		return fmt.Errorf("unknown sub command `%s`", cmds[0])
 	}
@@ -246,14 +246,14 @@ func (d *dictDelOld) parse(cmd []string) error {
 	return nil
 }
 
-type dictList struct {
+type dictListOld struct {
 	isLatest bool
 	from     uint
 	to       uint
 	limit    uint
 }
 
-func (d *dictList) parse(cmd []string) error {
+func (d *dictListOld) parse(cmd []string) error {
 	switch len(cmd) {
 	case 0:
 		return fmt.Errorf("dict list sub cmd not provided")
@@ -298,7 +298,7 @@ func (d *dictList) parse(cmd []string) error {
 
 const discordPostLenLimit = 2000
 
-func (d *dictList) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+func (d *dictListOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	var lists []replace.Dict
 	cev, err := ceviord.Channels.getChannel(m.GuildID)
 	if err != nil || cev == nil {
@@ -337,7 +337,7 @@ func (d *dictList) handle(sess *discordgo.Session, m *discordgo.MessageCreate) e
 	}
 	return nil
 }
-func (d *dictList) getOptStr() string {
+func (d *dictListOld) getOptStr() string {
 	if d.isLatest {
 		if d.limit == 1<<32-1 {
 			return "全ての単語辞書を表示します。\n"

@@ -123,19 +123,18 @@ var cmds = []*discordgo.ApplicationCommand{
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
 				Options: []*discordgo.ApplicationCommandOption{
 					{
-						Name:        "limit",
+						Name:        "length",
 						Description: "specify number of records",
 						Type:        discordgo.ApplicationCommandOptionInteger,
 						Required:    false,
 					},
-					{
-						Name:        "all",
-						Description: "show all records",
-						Type:        discordgo.ApplicationCommandOptionBoolean,
-						Required:    false,
-					},
 				},
 			},
+			/* {
+				Name:        "dump",
+				Description: "dump all records",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+			}, */
 			/* {
 				Name:        "search",
 				Description: "search record with effect",
@@ -426,7 +425,7 @@ func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (di
 	case "show":
 		return newDictShow(opt.Options)
 	default:
-		return nil, fmt.Errorf("dict sub command parse failed")
+		return nil, fmt.Errorf("dict sub command parse failed. %s", opt.Name)
 	}
 }
 
@@ -443,10 +442,9 @@ type (
 	}
 	dictShow struct {
 		isLatest bool
-		from     uint
-		to       uint
 		limit    uint
 	}
+	dictDump struct{}
 )
 
 func newDictAdd(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictAdd, error) {
@@ -529,9 +527,63 @@ func (dd *dictDel) execute(guildId, _ string) (*discordgo.InteractionResponseDat
 			Fields:      []*discordgo.MessageEmbedField{{Name: del.Word, Value: del.Yomi}},
 		}}}, nil
 }
+
+const defaultDictShowLimit = 10
+
 func newDictShow(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictShow, error) {
-	return nil, nil
+	ds := dictShow{limit: 0, isLatest: false}
+	for _, o := range opt {
+		switch o.Name {
+		case "length":
+			ds.limit = uint(o.IntValue())
+		default:
+			return nil, fmt.Errorf("undefined option appear in dict show handler")
+		}
+	}
+	if ds.limit == 0 {
+		ds.limit = defaultDictShowLimit
+	}
+	return &ds, nil
 }
 func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
-	return nil, nil
+	var lists []replace.Dict
+	cev, err := ceviord.Channels.getChannel(guildId)
+	if err != nil || cev == nil {
+		return nil, err
+	}
+	lists, err = cev.dictController.Dump(ds.limit)
+	if err != nil {
+		return nil, fmt.Errorf("dictionary get failed `%w`", err)
+	}
+	if lists == nil {
+		return nil, fmt.Errorf("fetch dict records failed")
+	}
+	dicts := replace.Dicts(lists)
+	returnedStr := make([]string, 1)
+	cur := 0
+	returnedStr[cur] = ds.getOptStr()
+
+	for _, s := range dicts.GetStringSlice() {
+		if len([]rune(returnedStr[cur]+s+"\n")) >= discordPostLenLimit {
+			returnedStr = append(returnedStr, s+"\n")
+			cur++
+		} else {
+			returnedStr[cur] += (s + "\n")
+		}
+	}
+	emds := make([]*discordgo.MessageEmbed, 0)
+	for i, v := range returnedStr {
+		e := discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("page %d/%d", i+1, len(returnedStr)),
+			Description: v,
+		}
+		emds = append(emds, &e)
+	}
+	pp.Println(emds)
+	return &discordgo.InteractionResponseData{
+		Title:  "dict record",
+		Embeds: emds}, nil
+}
+func (ds *dictShow) getOptStr() string {
+	return fmt.Sprintf("直近の%dレコードを表示します\n", ds.limit)
 }
