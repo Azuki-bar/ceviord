@@ -26,7 +26,7 @@ func Test_bye_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &bye{}
+			b := &byeOld{}
 			if err := b.parse(tt.args.in0); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -79,11 +79,11 @@ func Test_change_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &change{}
+			c := &changeOld{}
 			if err := c.parse(tt.args.cmds); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(c, &change{changeTo: tt.fields.changeTo}) {
+			if !reflect.DeepEqual(c, &changeOld{changeTo: tt.fields.changeTo}) {
 				t.Errorf("parse failed")
 			}
 		})
@@ -170,11 +170,11 @@ func Test_dictAdd_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &dictAdd{}
+			d := &dictAddOld{}
 			if err := d.parse(tt.args.cmd); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(d, &dictAdd{word: tt.fields.word, yomi: tt.fields.yomi}) {
+			if !reflect.DeepEqual(d, &dictAddOld{word: tt.fields.word, yomi: tt.fields.yomi}) {
 				t.Errorf("parse failed")
 			}
 		})
@@ -246,11 +246,11 @@ func Test_dictDel_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &dictDel{}
+			d := &dictDelOld{}
 			if err := d.parse(tt.args.cmd); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(d, &dictDel{ids: tt.fields.ids}) {
+			if !reflect.DeepEqual(d, &dictDelOld{ids: tt.fields.ids}) {
 				t.Errorf("parse failed")
 			}
 		})
@@ -336,18 +336,18 @@ func Test_dictList_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &dictList{}
+			d := &dictListOld{}
 			if err := d.parse(tt.args.cmd); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(d, &dictList{
+			if !reflect.DeepEqual(d, &dictListOld{
 				isLatest: tt.fields.isLatest,
 				from:     tt.fields.from,
 				to:       tt.fields.to,
 				limit:    tt.fields.limit},
 			) {
 				t.Errorf("parse failed wants %+v; got %+v",
-					&dictList{isLatest: tt.fields.isLatest, from: tt.fields.from, to: tt.fields.to, limit: tt.fields.limit}, d)
+					&dictListOld{isLatest: tt.fields.isLatest, from: tt.fields.from, to: tt.fields.to, limit: tt.fields.limit}, d)
 			}
 		})
 	}
@@ -368,7 +368,7 @@ func Test_dict_parse(t *testing.T) {
 	}{
 		{
 			name:    "dict add",
-			fields:  fields{sub: &dictAdd{word: "word", yomi: "yomi"}},
+			fields:  fields{sub: &dictAddOld{word: "word", yomi: "yomi"}},
 			args:    args{cmds: []string{"dict", "add", "word", "yomi"}},
 			wantErr: false,
 		},
@@ -380,19 +380,19 @@ func Test_dict_parse(t *testing.T) {
 		},
 		{
 			name:    "dict del",
-			fields:  fields{sub: &dictDel{ids: []uint{1}}},
+			fields:  fields{sub: &dictDelOld{ids: []uint{1}}},
 			args:    args{cmds: []string{"dict", "del", "1"}},
 			wantErr: false,
 		},
 		{
 			name:    "dict delete",
-			fields:  fields{sub: &dictDel{ids: []uint{1}}},
+			fields:  fields{sub: &dictDelOld{ids: []uint{1}}},
 			args:    args{cmds: []string{"dict", "delete", "1"}},
 			wantErr: false,
 		},
 		{
 			name:    "dict rm",
-			fields:  fields{sub: &dictDel{ids: []uint{1}}},
+			fields:  fields{sub: &dictDelOld{ids: []uint{1}}},
 			args:    args{cmds: []string{"dict", "rm", "1"}},
 			wantErr: false,
 		},
@@ -404,19 +404,19 @@ func Test_dict_parse(t *testing.T) {
 		},
 		{
 			name:    "dict list",
-			fields:  fields{sub: &dictList{isLatest: true, from: 0, to: 0, limit: 10}},
+			fields:  fields{sub: &dictListOld{isLatest: true, from: 0, to: 0, limit: 10}},
 			args:    args{cmds: []string{"dict", "list"}},
 			wantErr: false,
 		},
 		{
 			name:    "dict ls",
-			fields:  fields{sub: &dictList{isLatest: true, from: 0, to: 0, limit: 10}},
+			fields:  fields{sub: &dictListOld{isLatest: true, from: 0, to: 0, limit: 10}},
 			args:    args{cmds: []string{"dict", "ls"}},
 			wantErr: false,
 		},
 		{
 			name:    "dict show",
-			fields:  fields{sub: &dictList{isLatest: true, from: 0, to: 0, limit: 10}},
+			fields:  fields{sub: &dictListOld{isLatest: true, from: 0, to: 0, limit: 10}},
 			args:    args{cmds: []string{"dict", "show"}},
 			wantErr: false,
 		},
@@ -429,12 +429,12 @@ func Test_dict_parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &dict{}
+			d := &dictOld{}
 			if err := d.parse(tt.args.cmds); (err != nil) != tt.wantErr {
 				t.Errorf("parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !reflect.DeepEqual(d, &dict{sub: tt.fields.sub}) {
-				t.Errorf("parse failed; want %+v, but %+v", &dict{sub: tt.fields.sub}, d)
+			if !reflect.DeepEqual(d, &dictOld{sub: tt.fields.sub}) {
+				t.Errorf("parse failed; want %+v, but %+v", &dictOld{sub: tt.fields.sub}, d)
 			}
 		})
 	}

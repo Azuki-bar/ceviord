@@ -48,7 +48,7 @@ func (cs Channels) getChannel(guildId string) (*Channel, error) {
 	if c, ok := cs[guildId]; ok {
 		return c, nil
 	}
-	return nil, fmt.Errorf("channel not found")
+	return nil, fmt.Errorf("voice actor connected channel is not found")
 }
 func (cs Channels) isExistChannel(guildId string) bool {
 	_, ok := cs[guildId]
@@ -128,13 +128,13 @@ func SetNewTalker(wav CevioWav)              { ceviord.cevioWav = wav }
 func SetDbController(r replace.DbController) { ceviord.dictController = r }
 func SetParam(param *Param)                  { ceviord.param = param }
 
-func FindJoinedVC(s *discordgo.Session, m *discordgo.MessageCreate) *discordgo.Channel {
-	st, err := s.GuildChannels(m.GuildID)
+func FindJoinedVC(s *discordgo.Session, guildId, authorId string) *discordgo.Channel {
+	st, err := s.GuildChannels(guildId)
 	if err != nil {
 		logger.Log(logging.INFO, err)
 		return nil
 	}
-	vcs, err := s.State.VoiceState(m.GuildID, m.Author.ID)
+	vcs, err := s.State.VoiceState(guildId,authorId)
 	if err != nil {
 		logger.Log(logging.WARN, fmt.Errorf("find joinedVc err occurred `%w`", err))
 		return nil
@@ -158,17 +158,17 @@ func parseUserCmd(msg string) (userMainCmd, error) {
 	var mainCmd userMainCmd
 	switch rawCmd[0] {
 	case "sasara":
-		mainCmd = new(sasara)
+		mainCmd = new(sasaraOld)
 	case "bye":
-		mainCmd = new(bye)
+		mainCmd = new(byeOld)
 	case "dict":
-		mainCmd = new(dict)
+		mainCmd = new(dictOld)
 	case "change":
-		mainCmd = new(change)
+		mainCmd = new(changeOld)
 	case "help", "man":
-		mainCmd = new(help)
+		mainCmd = new(helpOld)
 	case "ping":
-		mainCmd = new(ping)
+		mainCmd = new(pingOld)
 	default:
 		return nil, fmt.Errorf("unknown user cmd `%s` \n", rawCmd[0])
 	}

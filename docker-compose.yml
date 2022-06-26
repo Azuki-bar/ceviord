@@ -15,7 +15,8 @@ services:
       CEVIORD_CONN_DB_USER: "root"
       CEVIORD_CONN_DB_PROTOCOL: "tcp"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
   db:
     image: mysql:8.0.29-debian
     environment:
@@ -27,3 +28,7 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 2s
+      retries: 20
