@@ -130,11 +130,11 @@ var cmds = []*discordgo.ApplicationCommand{
 					},
 				},
 			},
-			/* {
+			{
 				Name:        "dump",
 				Description: "dump all records",
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
-			}, */
+			},
 			/* {
 				Name:        "search",
 				Description: "search record with effect",
@@ -153,7 +153,6 @@ var cmds = []*discordgo.ApplicationCommand{
 	{
 		Name:        changeCmdName,
 		Description: "change voice actor",
-		// Type:        discordgo.MessageApplicationCommand,
 		Options: []*discordgo.ApplicationCommandOption{
 			{
 				Name:        "cast",
@@ -424,6 +423,8 @@ func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (di
 		return newDictDel(opt.Options)
 	case "show":
 		return newDictShow(opt.Options)
+	case "dump":
+		return NewDictDump(opt.Options)
 	default:
 		return nil, fmt.Errorf("dict sub command parse failed. %s", opt.Name)
 	}
@@ -444,7 +445,8 @@ type (
 		isLatest bool
 		limit    uint
 	}
-	dictDump struct{}
+	dictDump struct {
+	}
 )
 
 func newDictAdd(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictAdd, error) {
@@ -546,19 +548,10 @@ func newDictShow(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dic
 	return &ds, nil
 }
 func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
-	var lists []replace.Dict
-	cev, err := ceviord.Channels.getChannel(guildId)
-	if err != nil || cev == nil {
+	dicts, err := fetchRecords(guildId, ds.limit)
+	if err != nil {
 		return nil, err
 	}
-	lists, err = cev.dictController.Dump(ds.limit)
-	if err != nil {
-		return nil, fmt.Errorf("dictionary get failed `%w`", err)
-	}
-	if lists == nil {
-		return nil, fmt.Errorf("fetch dict records failed")
-	}
-	dicts := replace.Dicts(lists)
 	returnedStr := make([]string, 1)
 	cur := 0
 	returnedStr[cur] = ds.getOptStr()
@@ -584,6 +577,62 @@ func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionRes
 		Title:  "dict record",
 		Embeds: emds}, nil
 }
+
+func fetchRecords(guildId string, limit uint) (*replace.Dicts, error) {
+	var lists []replace.Dict
+	cev, err := ceviord.Channels.getChannel(guildId)
+	if err != nil || cev == nil {
+		return nil, err
+	}
+	lists, err = cev.dictController.Dump(limit)
+	if err != nil {
+		return nil, fmt.Errorf("dictionary get failed `%w`", err)
+	}
+	if lists == nil {
+		return nil, fmt.Errorf("fetch dict records failed")
+	}
+	ds := replace.Dicts(lists)
+	return &ds, nil
+}
+
 func (ds *dictShow) getOptStr() string {
 	return fmt.Sprintf("直近の%dレコードを表示します\n", ds.limit)
+}
+
+func NewDictDump(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictDump, error) {
+	return &dictDump{}, nil
+}
+func (dd *dictDump) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
+	dicts, err := fetchRecords(guildId, 1<<32-1)
+	if err != nil {
+		return nil, err
+	}
+	returnedStr := make([]string, 1)
+	cur := 0
+	returnedStr[cur] = dd.getOptStr()
+
+	for _, s := range dicts.GetStringSlice() {
+		if len([]rune(returnedStr[cur]+s+"\n")) >= discordPostLenLimit {
+			returnedStr = append(returnedStr, s+"\n")
+			cur++
+		} else {
+			returnedStr[cur] += (s + "\n")
+		}
+	}
+	emds := make([]*discordgo.MessageEmbed, 0)
+	for i, v := range returnedStr {
+		e := discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("page %d/%d", i+1, len(returnedStr)),
+			Description: v,
+		}
+		emds = append(emds, &e)
+	}
+	pp.Println(emds)
+	return &discordgo.InteractionResponseData{
+		Title:  "dict record",
+		Embeds: emds}, nil
+}
+
+func (dd *dictDump) getOptStr() string {
+	return fmt.Sprintf("全てのレコードを表示します\n")
 }
