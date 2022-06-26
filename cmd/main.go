@@ -72,7 +72,7 @@ func main() {
 	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { log.Println("connect to discord") })
 	dgSess.AddHandler(ceviord.MessageCreate)
 	dgSess.AddHandler(ceviord.InteractionHandler)
-	dgSess.Debug = true
+	// dgSess.Debug = true
 	gTalker, closer := speechGrpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
