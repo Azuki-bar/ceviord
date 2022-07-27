@@ -18,7 +18,7 @@ services:
       db:
         condition: service_healthy
   db:
-    image: mysql:8.0.29-debian
+    image: mysql:8.0.30-debian
     environment:
       MYSQL_ROOT_PASSWORD: password
     volumes:
