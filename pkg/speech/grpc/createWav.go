@@ -1,4 +1,4 @@
-package speechGrpc
+package grpc
 
 import (
 	"context"

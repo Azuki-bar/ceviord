@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/azuki-bar/ceviord/pkg/slashCmd"
+	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
 	"log"
 	"os"
 	"os/signal"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
-	"github.com/azuki-bar/ceviord/pkg/speechGrpc"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-gorp/gorp"
 	_ "github.com/go-sql-driver/mysql"
@@ -74,7 +74,7 @@ func main() {
 	dgSess.AddHandler(ceviord.MessageCreate)
 	dgSess.AddHandler(slashCmd.InteractionHandler)
 	// dgSess.Debug = true
-	gTalker, closer := speechGrpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
+	gTalker, closer := grpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer closer()
 	ceviord.SetNewTalker(gTalker)
 
