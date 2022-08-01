@@ -1,4 +1,4 @@
-package speechApi
+package win32
 
 import (
 	"github.com/azuki-bar/ceviord/pkg/ceviord"

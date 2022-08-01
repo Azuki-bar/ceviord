@@ -30,7 +30,7 @@ jobs:
 
       - name: build PB
         env:
-          ProtocVer: 3.20.1
+          ProtocVer: 21.4
         run: |
           curl -L https://github.com/protocolbuffers/protobuf/releases/download/v$ProtocVer/protoc-$ProtocVer-linux-x86_64.zip -o $RUNNER_TEMP/protoc.zip
           unzip -d $RUNNER_TEMP/protoc $RUNNER_TEMP/protoc.zip
@@ -39,17 +39,4 @@ jobs:
           
           mkdir -p $GITHUB_WORKSPACE/spec
           make pb
-      - name: Count changes
-        id: changes
-        run: |
-          # https://zenn.dev/snowcait/articles/18c9137f49e378#%E6%96%B9%E6%B3%95-2-%3A-jobs.%3Cjob_id%3E.steps.if
-          git add -N . # 新規ファイルを含める
-          echo "::set-output name=count::$(git diff --name-only | wc -l)"
-      - name: commit & push
-        run: |
-          git config --global user.name 'GITHUB ACTION BOT'
-          git config --global user.email 'bot@example.com'
-          git add .
-          git commit -m "Update"
-          git push
-        if: steps.changes.outputs.count > 0
+      - uses: EndBug/add-and-commit@v9
