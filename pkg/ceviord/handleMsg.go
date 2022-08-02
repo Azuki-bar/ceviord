@@ -272,6 +272,9 @@ func SendMsg(msg string, session *discordgo.Session, guildId string) error {
 
 func SendEmbedMsg(embed *discordgo.MessageEmbed, session *discordgo.Session, guildId string) error {
 	cev, err := Cache.Channels.GetChannel(guildId)
+	if cev == nil {
+		return err
+	}
 	isJoined, err := cev.IsActorJoined(session)
 	if err != nil || !isJoined {
 		return err
