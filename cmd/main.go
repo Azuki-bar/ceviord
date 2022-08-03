@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/azuki-bar/ceviord/pkg/joinVc"
 	"github.com/azuki-bar/ceviord/pkg/slashCmd"
 	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
 	"log"
@@ -73,6 +74,7 @@ func main() {
 	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { log.Println("connect to discord") })
 	dgSess.AddHandler(ceviord.MessageCreate)
 	dgSess.AddHandler(slashCmd.InteractionHandler)
+	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
 	// dgSess.Debug = true
 	gTalker, closer := grpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer closer()
