@@ -16,17 +16,17 @@ type handler struct {
 	joinedChannels ceviord.Channels
 }
 
-func (h *handler) handle() error {
+type Handler interface {
+	handle(speaker func(text, guildId string, session *discordgo.Session) error) error
+}
+
+func (h *handler) handle(speaker func(text string, guildId string, session *discordgo.Session) error) error {
 	switch h.changeState.(type) {
 	case intoRoom, outRoom:
-		return ceviord.RawSpeak(h.changeState.GetText(), h.VoiceStateUpdate.GuildID, h.session)
+		return speaker(h.changeState.GetText(), h.VoiceStateUpdate.GuildID, h.session)
 	default:
 		return nil
 	}
-}
-
-type Handler interface {
-	handle() error
 }
 
 type ChangeRoomState interface {
@@ -114,7 +114,7 @@ func VoiceStateUpdateHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpda
 		ceviord.Logger.Log(logging.WARN, err)
 		return
 	}
-	err = h.handle()
+	err = h.handle(ceviord.RawSpeak)
 	if err != nil {
 		ceviord.Logger.Log(logging.WARN, err)
 		return
