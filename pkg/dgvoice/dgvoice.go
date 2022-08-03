@@ -47,9 +47,9 @@ var OnError = func(str string, err error) {
 	prefix := "dgVoice: " + str
 
 	if err != nil {
-		os.Stderr.WriteString(prefix + ": " + err.Error())
+		os.Stderr.WriteString(prefix + ": " + err.Error() + "\n")
 	} else {
-		os.Stderr.WriteString(prefix)
+		os.Stderr.WriteString(prefix + "\n")
 	}
 }
 
