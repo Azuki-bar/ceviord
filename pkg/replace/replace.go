@@ -155,7 +155,6 @@ func ApplySysDict(msg string) string {
 		{before: regexp.MustCompile("\n"), after: " "},
 		{before: regexp.MustCompile("~"), after: "ー"},
 		{before: regexp.MustCompile("〜"), after: "ー"},
-		{before: regexp.MustCompile("!.+"), after: ""}, // issue #84
 	}
 
 	for _, d := range dicts {
