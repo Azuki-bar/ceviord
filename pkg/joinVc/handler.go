@@ -10,17 +10,18 @@ import (
 
 type handler struct {
 	*discordgo.VoiceStateUpdate
-	session     *discordgo.Session
-	changeState ChangeRoomState
-	user        discord.User
+	session        *discordgo.Session
+	changeState    ChangeRoomState
+	user           discord.User
+	joinedChannels ceviord.Channels
 }
 
 func (h *handler) handle() error {
 	switch h.changeState.(type) {
-	case outOfScope:
-		return nil
-	default:
+	case intoRoom, outRoom:
 		return ceviord.RawSpeak(h.changeState.GetText(), h.VoiceStateUpdate.GuildID, h.session)
+	default:
+		return nil
 	}
 }
 
@@ -32,11 +33,44 @@ type ChangeRoomState interface {
 	GetText() string
 }
 
-func NewChangeRoomState(vsu *discordgo.VoiceStateUpdate) ChangeRoomState {
-	if vsu.BeforeUpdate == nil && vsu.VoiceState != nil {
-		return intoRoom{}
-	} else if vsu.BeforeUpdate != nil && vsu.VoiceState.ChannelID == "" {
-		return outRoom{}
+func NewChangeRoomState(vsu *discordgo.VoiceStateUpdate, s *discordgo.Session, cs *ceviord.Channels) ChangeRoomState {
+	if !cs.IsExistChannel(vsu.GuildID) {
+		return outOfScope{}
+	}
+	c, err := cs.GetChannel(vsu.GuildID)
+	if err != nil {
+		return outOfScope{}
+	}
+	u, err := discord.NewUser(vsu.UserID, s, vsu.GuildID)
+	if u.Bot {
+		return outOfScope{}
+	}
+	if err != nil {
+		ceviord.Logger.Log(logging.WARN, err)
+		return outOfScope{}
+	}
+	scn, err := u.ScreenName()
+	if err != nil {
+		ceviord.Logger.Log(logging.WARN, err)
+		return outOfScope{}
+	}
+	var state ChangeRoomState = outOfScope{}
+	if (vsu.BeforeUpdate == nil || vsu.BeforeUpdate.ChannelID != c.VoiceConn.ChannelID) && vsu.VoiceState != nil {
+		state = intoRoom{screenName: scn}
+	} else if vsu.BeforeUpdate != nil && vsu.VoiceState.ChannelID != c.VoiceConn.ChannelID {
+		state = outRoom{screenName: scn}
+	}
+	switch state.(type) {
+	case intoRoom:
+		if vsu.ChannelID == c.VoiceConn.ChannelID {
+			return state
+		}
+	case outRoom:
+		if vsu.BeforeUpdate.ChannelID == c.VoiceConn.ChannelID {
+			return state
+		}
+	default:
+		return outOfScope{}
 	}
 	return outOfScope{}
 }
@@ -60,7 +94,7 @@ func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (Handler,
 	if err != nil {
 		return nil, err
 	}
-	cs := NewChangeRoomState(vsu)
+	cs := NewChangeRoomState(vsu, s, &ceviord.Cache.Channels)
 	if cs == nil {
 		// ignore not covered event
 		return nil, nil
@@ -69,7 +103,8 @@ func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (Handler,
 		session:          s,
 		VoiceStateUpdate: vsu,
 		user:             u,
-		changeState:      NewChangeRoomState(vsu),
+		changeState:      cs,
+		joinedChannels:   ceviord.Cache.Channels,
 	}, nil
 }
 

@@ -227,6 +227,12 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 
 func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
 	cev, err := Cache.Channels.GetChannel(guildId)
+	if cev == nil {
+		return fmt.Errorf("get channel failed")
+	}
+	if err != nil {
+		return err
+	}
 	isJoined, err := cev.IsActorJoined(sess)
 	if err != nil || !isJoined {
 		return err
