@@ -3,14 +3,15 @@ package ceviord
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/dgvoice"
-	"github.com/azuki-bar/ceviord/pkg/logging"
-	"github.com/azuki-bar/ceviord/pkg/replace"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/azuki-bar/ceviord/pkg/dgvoice"
+	"github.com/azuki-bar/ceviord/pkg/logging"
+	"github.com/azuki-bar/ceviord/pkg/replace"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -206,11 +207,14 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 		if !(isJoined && msg.ChannelID == cev.PickedChannel) {
 			return
 		}
-		err = RawSpeak(GetMsg(msg, sess), msg.GuildID, sess)
-		if err != nil {
-			Logger.Log(logging.INFO, err)
+		replacedMsg := GetMsg(msg, sess)
+		if len(replacedMsg) != 0 {
+			err = RawSpeak(replacedMsg, msg.GuildID, sess)
+			if err != nil {
+				Logger.Log(logging.INFO, err)
+			}
+			return
 		}
-		return
 	}
 	if cev != nil { // already establish connection
 		cev.DictController.SetGuildId(msg.GuildID)
@@ -226,6 +230,9 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 }
 
 func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
+	if len(text) == 0 {
+		return fmt.Errorf("text length is 0")
+	}
 	cev, err := Cache.Channels.GetChannel(guildId)
 	if cev == nil {
 		return fmt.Errorf("get channel failed")
@@ -305,7 +312,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 		return ""
 	}
 	// issue #84
-	if regexp.MustCompile(`^\!.+$`).FindString(cont) == "" {
+	if regexp.MustCompile(`^!.+$`).ReplaceAllString(cont, "") == "" {
 		return ""
 	}
 	msg := []rune(name + "。" + replace.ApplySysDict(cont))
