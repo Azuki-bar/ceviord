@@ -304,6 +304,10 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 		Logger.Log(logging.WARN, fmt.Errorf("replace mention failed `%w`", err))
 		return ""
 	}
+	// issue #84
+	if regexp.MustCompile(`^\!.+$`).FindString(cont) == "" {
+		return ""
+	}
 	msg := []rune(name + "。" + replace.ApplySysDict(cont))
 
 	cev, err := Cache.Channels.GetChannel(m.GuildID)
