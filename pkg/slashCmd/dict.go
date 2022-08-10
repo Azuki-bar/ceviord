@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"github.com/k0kubun/pp"
@@ -42,10 +43,13 @@ func (*dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interactio
 }
 
 func replySimpleMsg(msg string, s *discordgo.Session, i *discordgo.Interaction) {
-	s.InteractionRespond(i, &discordgo.InteractionResponse{
+	err := s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
+	if err != nil {
+		ceviord.Logger.Log(logging.WARN, "reply simple msg", err)
+	}
 }
 
 func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (dictSubCmd, error) {
