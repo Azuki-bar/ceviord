@@ -337,3 +337,5 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	}
 	return stringMax(rawMsg, strLenMax)
 }
+
+

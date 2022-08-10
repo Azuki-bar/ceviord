@@ -2,6 +2,7 @@ package joinVc
 
 import (
 	"fmt"
+
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/discord"
 	"github.com/azuki-bar/ceviord/pkg/logging"
@@ -16,14 +17,14 @@ type handler struct {
 	joinedChannels ceviord.Channels
 }
 
-type Handler interface {
-	handle(speaker func(text, guildId string, session *discordgo.Session) error) error
-}
-
-func (h *handler) handle(speaker func(text string, guildId string, session *discordgo.Session) error) error {
+func (h *handler) handle(speaker func(text string, guildId string, session *discordgo.Session) error, c *ceviord.Channel) error {
 	switch h.changeState.(type) {
 	case intoRoom, outRoom:
-		return speaker(h.changeState.GetText(), h.VoiceStateUpdate.GuildID, h.session)
+		msg, err := c.DictController.ApplyUserDict(h.changeState.GetText())
+		if err != nil {
+			return err
+		}
+		return speaker(msg, h.VoiceStateUpdate.GuildID, h.session)
 	default:
 		return nil
 	}
@@ -89,17 +90,17 @@ func (r outRoom) GetText() string {
 
 type outOfScope struct{ ChangeRoomState }
 
-func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (Handler, error) {
+func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler, error) {
 	u, err := discord.NewUser(vsu.UserID, s, vsu.GuildID)
 	if err != nil {
-		return nil, err
+		return handler{}, err
 	}
 	cs := NewChangeRoomState(vsu, s, &ceviord.Cache.Channels)
 	if cs == nil {
 		// ignore not covered event
-		return nil, nil
+		return handler{}, nil
 	}
-	return &handler{
+	return handler{
 		session:          s,
 		VoiceStateUpdate: vsu,
 		user:             u,
@@ -114,7 +115,12 @@ func VoiceStateUpdateHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpda
 		ceviord.Logger.Log(logging.WARN, err)
 		return
 	}
-	err = h.handle(ceviord.RawSpeak)
+	channel, err := ceviord.Cache.Channels.GetChannel(vsu.GuildID)
+	if err != nil {
+		ceviord.Logger.Log(logging.WARN, err)
+		return
+	}
+	err = h.handle(ceviord.RawSpeak, channel)
 	if err != nil {
 		ceviord.Logger.Log(logging.WARN, err)
 		return
