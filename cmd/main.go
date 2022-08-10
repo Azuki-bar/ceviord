@@ -77,7 +77,12 @@ func main() {
 	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
 	// dgSess.Debug = true
 	gTalker, closer := grpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
-	defer closer()
+	defer func() {
+		err = closer()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	ceviord.SetNewTalker(gTalker)
 
 	var db *sql.DB
@@ -118,7 +123,10 @@ func main() {
 	slashCmds, err := slashCmd.NewCmds(dgSess, "", sg.Generate())
 	defer func() {
 		if slashCmds != nil {
-			slashCmds.DeleteCmds(dgSess, "")
+			err = slashCmds.DeleteCmds(dgSess, "")
+			if err != nil {
+				panic(err)
+			}
 		}
 	}()
 	if err != nil {
@@ -128,8 +136,6 @@ func main() {
 
 	// Wait here until CTRL-C or other term signal is received.
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
-
-	return
 }

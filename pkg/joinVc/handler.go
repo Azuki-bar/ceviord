@@ -119,5 +119,4 @@ func VoiceStateUpdateHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpda
 		ceviord.Logger.Log(logging.WARN, err)
 		return
 	}
-	return
 }

@@ -85,13 +85,16 @@ func (*byeOld) handle(sess *discordgo.Session, m *discordgo.MessageCreate) error
 		return fmt.Errorf("connection not found")
 	}
 	isJoin, err := cev.IsActorJoined(sess)
+	if err != nil {
+		return err
+	}
 	if !isJoin || cev.VoiceConn == nil {
 		return fmt.Errorf("ceviord is already disconnected\n")
 	}
 	defer func() {
 		if cev.VoiceConn != nil {
 			cev.VoiceConn.Close()
-			Cache.Channels.DeleteChannel(m.GuildID)
+			err = Cache.Channels.DeleteChannel(m.GuildID)
 		}
 	}()
 	err = cev.VoiceConn.Speaking(false)

@@ -2,11 +2,12 @@ package slashCmd
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"github.com/k0kubun/pp"
-	"log"
 )
 
 type dict struct{}
@@ -30,10 +31,13 @@ func (*dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interactio
 		replySimpleMsg(fmt.Sprintf("dict sub cmd handler failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: d,
 	})
+	if err != nil {
+		log.Println(err)
+	}
 	c <- true
 }
 
@@ -266,5 +270,5 @@ func (dd *dictDump) execute(guildId, authorId string) (*discordgo.InteractionRes
 }
 
 func (dd *dictDump) getOptStr() string {
-	return fmt.Sprintf("全てのレコードを表示します\n")
+	return "全てのレコードを表示します\n"
 }

@@ -35,10 +35,16 @@ func (*leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) er
 	if !isJoin || cev.VoiceConn == nil {
 		return fmt.Errorf("voice actor is already disconnected")
 	}
+	if err != nil {
+		return err
+	}
 	defer func() {
 		if cev.VoiceConn != nil {
 			cev.VoiceConn.Close()
-			ceviord.Cache.Channels.DeleteChannel(i.GuildID)
+			err = ceviord.Cache.Channels.DeleteChannel(i.GuildID)
+			if err != nil {
+				ceviord.Logger.Log(logging.WARN, err)
+			}
 		}
 	}()
 	err = cev.VoiceConn.Speaking(false)
