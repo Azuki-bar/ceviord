@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"sync"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -38,7 +37,6 @@ const (
 var (
 	speakers    map[uint32]*gopus.Decoder
 	opusEncoder *gopus.Encoder
-	mu          sync.Mutex
 )
 
 // OnError gets called by dgvoice when an error is encountered.
@@ -85,7 +83,7 @@ func SendPCM(v *discordgo.VoiceConnection, pcm <-chan []int16) {
 			return
 		}
 
-		if v.Ready == false || v.OpusSend == nil {
+		if !v.Ready || v.OpusSend == nil {
 			// OnError(fmt.Sprintf("Discordgo not ready for opus packets. %+v : %+v", v.Ready, v.OpusSend), nil)
 			// Sending errors here might not be suited
 			return
@@ -105,7 +103,7 @@ func ReceivePCM(v *discordgo.VoiceConnection, c chan *discordgo.Packet) {
 	var err error
 
 	for {
-		if v.Ready == false || v.OpusRecv == nil {
+		if !v.Ready || v.OpusRecv == nil {
 			OnError(fmt.Sprintf("Discordgo not to receive opus packets. %+v : %+v", v.Ready, v.OpusSend), nil)
 			return
 		}
@@ -164,13 +162,13 @@ func PlayAudioFile(v *discordgo.VoiceConnection, filename string, stop <-chan bo
 		return
 	}
 
-	// prevent memory leak from residual ffmpeg streams
-	defer killCmdSafely(run)
-
 	//when stop is sent, kill ffmpeg
 	go func() {
 		<-stop
-		killCmdSafely(run)
+		err := killCmdSafely(run)
+		if err != nil {
+			OnError("", err)
+		}
 	}()
 
 	// Send "speaking" packet over the voice websocket

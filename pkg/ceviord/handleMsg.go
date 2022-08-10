@@ -3,6 +3,7 @@ package ceviord
 import (
 	"crypto/rand"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -36,7 +37,6 @@ func (c Channel) IsActorJoined(sess *discordgo.Session) (bool, error) {
 }
 
 type Channels map[string]*Channel
-
 func (cs Channels) AddChannel(c Channel, guildId string) {
 	if _, ok := cs[guildId]; !ok {
 		c.CurrentParam = &Cache.Param.Parameters[0]
@@ -194,6 +194,8 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	cev, err := Cache.Channels.GetChannel(msg.GuildID)
 	if err != nil || cev == nil {
 		//todo; チャンネルに入っていないときの挙動を定義
+		log.Println(err)
+		return
 	}
 	isJoined := false
 	if cev != nil {
@@ -244,7 +246,10 @@ func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
 	if err != nil || !isJoined {
 		return err
 	}
-	Cache.cevioWav.ApplyEmotions(cev.CurrentParam)
+	err = Cache.cevioWav.ApplyEmotions(cev.CurrentParam)
+	if err != nil {
+		return err
+	}
 	Cache.mutex.Lock()
 	defer Cache.mutex.Unlock()
 	buf := make([]byte, 16)
@@ -269,6 +274,9 @@ func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
 
 func SendMsg(msg string, session *discordgo.Session, guildId string) error {
 	cev, err := Cache.Channels.GetChannel(guildId)
+	if err != nil {
+		return err
+	}
 	isJoined, err := cev.IsActorJoined(session)
 	if err != nil || !isJoined {
 		return err
@@ -318,6 +326,9 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	msg := []rune(name + "。" + replace.ApplySysDict(cont))
 
 	cev, err := Cache.Channels.GetChannel(m.GuildID)
+	if err != nil {
+		return ""
+	}
 	cev.DictController.SetGuildId(m.GuildID)
 	rawMsg, err := cev.DictController.ApplyUserDict(string(msg))
 	if err != nil {

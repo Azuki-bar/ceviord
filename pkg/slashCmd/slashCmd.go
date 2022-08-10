@@ -68,7 +68,7 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		ceviord.Logger.Log(logging.INFO, fmt.Errorf("parse command failed err is `%w`", err))
 		return
 	}
-	finish := make(chan bool, 0)
+	finish := make(chan bool)
 	// TODO; タイムアウト時に handle内でメッセージを送信しないように変更。
 	go h.handle(finish, s, i)
 	select {
