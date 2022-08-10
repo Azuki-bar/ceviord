@@ -75,10 +75,7 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	case <-finish:
 		return
 	case <-time.After(2500 * time.Millisecond):
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{Content: "handler connection timeout"},
-		})
+		replySimpleMsg("コネクションがタイムアウトしました。", s, i.Interaction)
 	}
 }
 

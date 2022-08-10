@@ -1,0 +1,9 @@
+run:
+  timeout: "3m"
+  issue-exit-code: 1
+  tests: true
+  skip-dirs-use-default: true
+  skip-files:
+    - pkg/dgvoice/.*.go$
+    - pkg/speech/win32/.*.go$
+  go: 1.18
