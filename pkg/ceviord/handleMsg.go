@@ -37,6 +37,7 @@ func (c Channel) IsActorJoined(sess *discordgo.Session) (bool, error) {
 }
 
 type Channels map[string]*Channel
+
 func (cs Channels) AddChannel(c Channel, guildId string) {
 	if _, ok := cs[guildId]; !ok {
 		c.CurrentParam = &Cache.Param.Parameters[0]
@@ -115,9 +116,6 @@ type CevioWav interface {
 	ApplyEmotions(param *Parameter) (err error)
 }
 
-const prefix = "!"
-const strLenMax = 300
-
 var tmpDir = filepath.Join(os.TempDir(), "ceviord")
 
 var Cache = Ceviord{
@@ -149,34 +147,6 @@ func FindJoinedVC(s *discordgo.Session, guildId, authorId string) *discordgo.Cha
 		}
 	}
 	return nil
-}
-
-func parseUserCmd(msg string) (userMainCmd, error) {
-	rawCmd := regexp.MustCompile(`[\s　]+`).Split(msg, -1)
-	if len(rawCmd) < 1 {
-		return nil, fmt.Errorf("parsing user cmd failed. user msg is `%s`\n", msg)
-	}
-	var mainCmd userMainCmd
-	switch rawCmd[0] {
-	case "sasara":
-		mainCmd = new(sasaraOld)
-	case "bye":
-		mainCmd = new(byeOld)
-	case "dict":
-		mainCmd = new(dictOld)
-	case "change":
-		mainCmd = new(changeOld)
-	case "help", "man":
-		mainCmd = new(helpOld)
-	case "ping":
-		mainCmd = new(pingOld)
-	default:
-		return nil, fmt.Errorf("unknown user cmd `%s` \n", rawCmd[0])
-	}
-	if err := mainCmd.parse(rawCmd); err != nil {
-		return nil, err
-	}
-	return mainCmd, nil
 }
 
 // MessageCreate will be called (due to AddHandler above) every time a new
@@ -217,17 +187,6 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 			}
 			return
 		}
-	}
-	if cev != nil { // already establish connection
-		cev.DictController.SetGuildId(msg.GuildID)
-	}
-	cmd, err := parseUserCmd(strings.TrimPrefix(msg.Content, prefix))
-	if err != nil {
-		Logger.Log(logging.DEBUG, fmt.Errorf("error occured in user cmd parser `%w`", err))
-		return
-	}
-	if err = cmd.handle(sess, msg); err != nil {
-		Logger.Log(logging.WARN, fmt.Errorf("error occured in cmd handler %T; `%w`", cmd, err))
 	}
 }
 
@@ -282,7 +241,7 @@ func SendMsg(msg string, session *discordgo.Session, guildId string) error {
 		return err
 	}
 	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
-	if len([]rune(msg)) > 2000 {
+	if len([]rune(msg)) > DiscordPostLenLimit {
 		return fmt.Errorf("discord message send limitation error")
 	} else if len([]rune(msg)) == 0 {
 		return fmt.Errorf("message len is 0")
@@ -338,4 +297,10 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	return stringMax(rawMsg, strLenMax)
 }
 
-
+func stringMax(msg string, max int) string {
+	lenMsg := len([]rune(msg))
+	if lenMsg > max {
+		return string([]rune(msg)[0:max])
+	}
+	return msg
+}

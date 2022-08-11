@@ -3,21 +3,21 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/joinVc"
-	"github.com/azuki-bar/ceviord/pkg/slashCmd"
-	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/azuki-bar/ceviord/pkg/joinVc"
+	"github.com/azuki-bar/ceviord/pkg/slashCmd"
+	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
+
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-gorp/gorp"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/k0kubun/pp"
 	"github.com/vrischmann/envconfig"
 	"gopkg.in/yaml.v2"
 )
@@ -119,7 +119,6 @@ func main() {
 	if err != nil {
 		log.Println("slash command generate failed")
 	}
-	pp.Print(sg.Generate())
 	slashCmds, err := slashCmd.NewCmds(dgSess, "", sg.Generate())
 	defer func() {
 		if slashCmds != nil {
