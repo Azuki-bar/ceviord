@@ -77,7 +77,7 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	case <-finish:
 		return
 	case <-time.After(timeoutDuration):
-		replySimpleMsg("コネクションがタイムアウトしました。", s, i.Interaction)
+		replySimpleMsg(ceviord.Cache.Logger, "コネクションがタイムアウトしました。", s, i.Interaction)
 		ceviord.Cache.Logger.Error("connection timeout", zap.Duration("time out limit", timeoutDuration))
 	}
 }
