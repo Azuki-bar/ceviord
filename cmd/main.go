@@ -17,6 +17,7 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-gorp/gorp"
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/vrischmann/envconfig"
 	"gopkg.in/yaml.v2"
@@ -88,8 +89,14 @@ func main() {
 	var db *sql.DB
 	for i := 1; i <= dbChallengeTimes; i++ {
 		dbConf := conf.auth.CeviordConn.DB
-		dsn := fmt.Sprintf("%s:%s@%s(%s)/%s?parseTime=true", dbConf.User, dbConf.Password, dbConf.Protocol, dbConf.Addr, dbConf.Name)
-		db, err = sql.Open("mysql", dsn)
+		conf := mysql.NewConfig()
+		conf.User = dbConf.User
+		conf.Passwd = dbConf.Password
+		conf.Net = dbConf.Protocol
+		conf.Addr = dbConf.Addr
+		conf.DBName = dbConf.Name
+
+		db, err = sql.Open("mysql", conf.FormatDSN())
 		if err == nil && db.Ping() == nil {
 			break
 		}
