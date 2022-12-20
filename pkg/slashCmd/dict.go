@@ -88,10 +88,8 @@ type (
 	dictShow struct {
 		isLatest bool
 		limit    uint
-		logger   *zap.Logger
 	}
 	dictDump struct {
-		logger *zap.Logger
 	}
 )
 
