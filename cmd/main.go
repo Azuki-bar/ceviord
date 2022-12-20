@@ -95,6 +95,7 @@ func main() {
 		conf.Net = dbConf.Protocol
 		conf.Addr = dbConf.Addr
 		conf.DBName = dbConf.Name
+		conf.ParseTime = true
 
 		db, err = sql.Open("mysql", conf.FormatDSN())
 		if err == nil && db.Ping() == nil {
