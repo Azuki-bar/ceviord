@@ -2,13 +2,16 @@ package slashCmd
 
 import (
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
-	"github.com/bwmarrin/discordgo"
 	"log"
+
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"github.com/bwmarrin/discordgo"
+	"go.uber.org/zap"
 )
 
-type join struct{}
+type join struct {
+	logger *zap.Logger
+}
 
 func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := j.rawHandle(s, i)
@@ -16,7 +19,7 @@ func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interact
 	msg = "successfully joined!"
 	if err != nil {
 		msg = fmt.Sprintln(fmt.Errorf("error in join handler `%w`", err))
-		ceviord.Logger.Log(logging.WARN, fmt.Errorf("error in join handler"))
+		j.logger.Warn("join handler error", zap.Error(err))
 	}
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -24,7 +27,7 @@ func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interact
 	})
 	c <- true
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, fmt.Errorf("error in `join` interaction respond err is `%w`", err))
+		j.logger.Warn("interaction respond failed", zap.Error(err))
 	}
 }
 func (*join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {

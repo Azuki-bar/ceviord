@@ -2,12 +2,15 @@ package slashCmd
 
 import (
 	"fmt"
+
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
+	"go.uber.org/zap"
 )
 
-type leave struct{}
+type leave struct {
+	logger *zap.Logger
+}
 
 func (l *leave) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := l.rawHandle(s, i)
@@ -15,18 +18,18 @@ func (l *leave) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.In
 	msg = "successfully leaved!"
 	if err != nil {
 		msg = fmt.Sprintln(fmt.Errorf("error in leave handler `%w`", err))
-		ceviord.Logger.Log(logging.WARN, fmt.Errorf("error in leave handler `%w`", err))
+		l.logger.Warn("raw handle failed", zap.Error(err))
 	}
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, fmt.Errorf("error in `leave` interaction respond, err is `%w`", err))
+		l.logger.Warn("error in leave interaction respond", zap.Error(err))
 	}
 	finish <- true
 }
-func (*leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (l *leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)
 	if err != nil || cev == nil {
 		return fmt.Errorf("connection not found")
@@ -43,7 +46,7 @@ func (*leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) er
 			cev.VoiceConn.Close()
 			err = ceviord.Cache.Channels.DeleteChannel(i.GuildID)
 			if err != nil {
-				ceviord.Logger.Log(logging.WARN, err)
+				l.logger.Warn("delete channel from cache failed", zap.Error(err), zap.String("guildID", i.GuildID))
 			}
 		}
 	}()

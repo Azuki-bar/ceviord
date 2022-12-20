@@ -5,36 +5,38 @@ import (
 	"log"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"github.com/k0kubun/pp"
+	"go.uber.org/zap"
 )
 
-type dict struct{}
+type dict struct {
+	logger *zap.Logger
+}
 
-func (*dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (d *dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)
 	cev.DictController.SetGuildId(i.GuildID)
 	if err != nil {
 		// voice channel connection not found
-		replySimpleMsg(fmt.Sprintf("dict handler failed. err is `%s`", err.Error()), s, i.Interaction)
+		replySimpleMsg(d.logger, fmt.Sprintf("dict handler failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
-	subCmd, err := dictSubCmdParse(i.ApplicationCommandData().Options[0])
+	subCmd, err := dictSubCmdParse(d.logger, i.ApplicationCommandData().Options[0])
 	if err != nil {
-		replySimpleMsg(fmt.Sprintf("dict sub cmd parser failed. err is `%s`", err.Error()), s, i.Interaction)
+		replySimpleMsg(d.logger, fmt.Sprintf("dict sub cmd parser failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
-	d, err := subCmd.execute(i.GuildID, i.Member.User.ID)
+	response, err := subCmd.execute(i.GuildID, i.Member.User.ID)
 	if err != nil {
 		pp.Print(err)
-		replySimpleMsg(fmt.Sprintf("dict sub cmd handler failed. err is `%s`", err.Error()), s, i.Interaction)
+		replySimpleMsg(d.logger, fmt.Sprintf("dict sub cmd handler failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: d,
+		Data: response,
 	})
 	if err != nil {
 		log.Println(err)
@@ -42,25 +44,25 @@ func (*dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interactio
 	c <- true
 }
 
-func replySimpleMsg(msg string, s *discordgo.Session, i *discordgo.Interaction) {
+func replySimpleMsg(logger *zap.Logger, msg string, s *discordgo.Session, i *discordgo.Interaction) {
 	err := s.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, "reply simple msg", err)
+		logger.Warn("reply simple msg", zap.Error(err), zap.String("msg", msg))
 	}
 }
 
-func dictSubCmdParse(opt *discordgo.ApplicationCommandInteractionDataOption) (dictSubCmd, error) {
+func dictSubCmdParse(logger *zap.Logger, opt *discordgo.ApplicationCommandInteractionDataOption) (dictSubCmd, error) {
 	if opt.Type != discordgo.ApplicationCommandOptionSubCommand {
 		return nil, fmt.Errorf("option type failed")
 	}
 	switch opt.Name {
 	case "add":
-		return newDictAdd(opt.Options)
+		return newDictAdd(logger, opt.Options)
 	case "del":
-		return newDictDel(opt.Options)
+		return newDictDel(logger, opt.Options)
 	case "show":
 		return newDictShow(opt.Options)
 	case "dump":
@@ -75,23 +77,28 @@ type (
 		execute(guildId, authorId string) (*discordgo.InteractionResponseData, error)
 	}
 	dictAdd struct {
-		yomi string
-		word string
+		yomi   string
+		word   string
+		logger *zap.Logger
 	}
 	dictDel struct {
-		id uint
+		id     uint
+		logger *zap.Logger
 	}
 	dictShow struct {
 		isLatest bool
 		limit    uint
+		logger   *zap.Logger
 	}
 	dictDump struct {
+		logger *zap.Logger
 	}
 )
 
-func newDictAdd(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictAdd, error) {
-	var da dictAdd
-	for _, o := range opt {
+func newDictAdd(logger *zap.Logger, opts []*discordgo.ApplicationCommandInteractionDataOption) (*dictAdd, error) {
+
+	da := dictAdd{logger: logger}
+	for _, o := range opts {
 		switch o.Name {
 		case "yomi":
 			da.yomi = o.StringValue()
@@ -134,9 +141,9 @@ func (da *dictAdd) execute(guildId, authorId string) (*discordgo.InteractionResp
 	}}, nil
 }
 
-func newDictDel(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictDel, error) {
-	var dd dictDel
-	for _, o := range opt {
+func newDictDel(logger *zap.Logger, opts []*discordgo.ApplicationCommandInteractionDataOption) (*dictDel, error) {
+	dd := dictDel{logger: logger}
+	for _, o := range opts {
 		switch o.Name {
 		case "id":
 			dd.id = uint(o.IntValue())
@@ -160,7 +167,7 @@ func (dd *dictDel) execute(guildId, _ string) (*discordgo.InteractionResponseDat
 	if err != nil {
 		return nil, fmt.Errorf("dict delete failed `%w`", err)
 	}
-	log.Printf("dict delete succeed. dict is %+v\n", del)
+	dd.logger.Info("dict delte succeed", zap.Any("delete entry", del))
 
 	return &discordgo.InteractionResponseData{
 		Embeds: []*discordgo.MessageEmbed{{

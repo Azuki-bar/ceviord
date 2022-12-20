@@ -3,13 +3,15 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	pb "github.com/azuki-bar/ceviord/spec"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
 	"time"
+
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	pb "github.com/azuki-bar/ceviord/spec"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type cevioWavGrpc struct {
@@ -17,10 +19,11 @@ type cevioWavGrpc struct {
 	grpcConn  *grpc.ClientConn
 	param     ceviord.Parameter
 	token     string
+	logger    *zap.Logger
 }
 
 // NewTalker returns wav create connection and connection close function.
-func NewTalker(connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
+func NewTalker(logger *zap.Logger, connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
 	conn, err := grpc.Dial(connConf.Cevio.EndPoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalln(err)
@@ -30,6 +33,7 @@ func NewTalker(connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc,
 		ttsClient: client,
 		param:     *param,
 		token:     connConf.Cevio.Token,
+		logger:    logger,
 	}
 	return c, c.grpcConn.Close
 }
@@ -49,10 +53,12 @@ func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 	}
 	res, err := c.ttsClient.CreateWav(ctx, req)
 	if err != nil {
+		c.logger.Warn("grpc execute failed", zap.Error(err))
 		return fmt.Errorf("grpc execute failed `%w`", err)
 	}
 	f, err := os.Create(path)
 	if err != nil {
+		c.logger.Warn("temp file create failed", zap.Error(err))
 		return fmt.Errorf("temp file create failed `%w`", err)
 	}
 	_, err = f.Write(res.Audio)

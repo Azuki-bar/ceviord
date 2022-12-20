@@ -35,7 +35,7 @@ type ChangeRoomState interface {
 	GetText() string
 }
 
-func NewChangeRoomState(vsu *discordgo.VoiceStateUpdate, s *discordgo.Session, cs *ceviord.Channels) ChangeRoomState {
+func NewChangeRoomState(logger *zap.Logger, vsu *discordgo.VoiceStateUpdate, s *discordgo.Session, cs *ceviord.Channels) ChangeRoomState {
 	if !cs.IsExistChannel(vsu.GuildID) {
 		return outOfScope{}
 	}
@@ -48,12 +48,12 @@ func NewChangeRoomState(vsu *discordgo.VoiceStateUpdate, s *discordgo.Session, c
 		return outOfScope{}
 	}
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		logger.Warn("something", zap.Error(err))
 		return outOfScope{}
 	}
 	scn, err := u.ScreenName()
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		logger.Warn("screen name fetch failed", zap.Error(err), zap.Any("user", u))
 		return outOfScope{}
 	}
 	var state ChangeRoomState = outOfScope{}
@@ -96,7 +96,7 @@ func NewHandler(logger *zap.Logger, s *discordgo.Session, vsu *discordgo.VoiceSt
 	if err != nil {
 		return handler{}, err
 	}
-	cs := NewChangeRoomState(vsu, s, &ceviord.Cache.Channels)
+	cs := NewChangeRoomState(logger, vsu, s, &ceviord.Cache.Channels)
 	if cs == nil {
 		// ignore not covered event
 		return handler{}, nil
@@ -112,19 +112,19 @@ func NewHandler(logger *zap.Logger, s *discordgo.Session, vsu *discordgo.VoiceSt
 }
 
 func VoiceStateUpdateHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) {
-	h, err := NewHandler( ceviord.Cache.,s, vsu)
+	h, err := NewHandler(ceviord.Cache.Logger, s, vsu)
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		h.logger.Error("voice state update handler", zap.Error(err))
 		return
 	}
 	channel, err := ceviord.Cache.Channels.GetChannel(vsu.GuildID)
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		h.logger.Error("get channel failed", zap.Error(err))
 		return
 	}
 	err = h.handle(ceviord.RawSpeak, channel)
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		h.logger.Error("handler failed", zap.Error(err))
 		return
 	}
 }

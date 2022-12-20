@@ -81,7 +81,7 @@ func main() {
 	dgSess.AddHandler(slashCmd.InteractionHandler)
 	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
 	// dgSess.Debug = true
-	gTalker, closer := grpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
+	gTalker, closer := grpc.NewTalker(logger, &conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer func() {
 		err = closer()
 		if err != nil {
