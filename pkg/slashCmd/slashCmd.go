@@ -96,7 +96,7 @@ func parseCommands(name string) (CommandHandler, error) {
 	case helpCmdName:
 		h = new(help)
 	case "ping":
-		h = new(ping)
+		h = &ping{logger: ceviord.Cache.Logger}
 	case "dict":
 		h = &dict{logger: ceviord.Cache.Logger}
 	case "cast":
