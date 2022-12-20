@@ -11,8 +11,8 @@ import (
 	"sync"
 
 	"github.com/azuki-bar/ceviord/pkg/dgvoice"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/azuki-bar/ceviord/pkg/replace"
+	"go.uber.org/zap"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -23,14 +23,13 @@ type Channel struct {
 	CurrentParam   *Parameter
 	guildId        string
 	DictController replace.DbController
+	logger         *zap.Logger
 }
-
-var Logger = logging.NewLog(logging.INFO)
 
 func (c Channel) IsActorJoined(sess *discordgo.Session) (bool, error) {
 	vcs, err := sess.State.VoiceState(c.guildId, sess.State.User.ID)
 	if err != nil {
-		Logger.Log(logging.INFO, err)
+		c.logger.Info("actor join error", zap.Error(err))
 		return false, err
 	}
 	return vcs.ChannelID != "", nil
@@ -72,6 +71,7 @@ type Ceviord struct {
 	Auth           *Auth
 	mutex          sync.Mutex
 	dictController replace.DbController
+	Logger         *zap.Logger
 }
 
 type Param struct {
@@ -126,16 +126,17 @@ var Cache = Ceviord{
 func SetNewTalker(wav CevioWav)              { Cache.cevioWav = wav }
 func SetDbController(r replace.DbController) { Cache.dictController = r }
 func SetParam(param *Param)                  { Cache.Param = param }
+func SetLogger(logger *zap.Logger)           { Cache.Logger = logger }
 
-func FindJoinedVC(s *discordgo.Session, guildId, authorId string) *discordgo.Channel {
-	st, err := s.GuildChannels(guildId)
+func FindJoinedVC(s *discordgo.Session, guildID, authorID string) *discordgo.Channel {
+	st, err := s.GuildChannels(guildID)
 	if err != nil {
-		Logger.Log(logging.INFO, err)
+		Cache.Logger.Error("get guild channels failed", zap.Error(err), zap.String("guildID", guildID), zap.String("authorID", authorID))
 		return nil
 	}
-	vcs, err := s.State.VoiceState(guildId, authorId)
+	vcs, err := s.State.VoiceState(guildID, authorID)
 	if err != nil {
-		Logger.Log(logging.WARN, fmt.Errorf("find joinedVc err occurred `%w`", err))
+		Cache.Logger.Warn("get voice state failed", zap.Error(err), zap.String("guildID", guildID), zap.String("authorID", authorID))
 		return nil
 	}
 	for _, c := range st {
@@ -156,9 +157,11 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
 	// This isn't required in this specific example, but it's a good practice.
 	if msg.Author.ID == sess.State.User.ID {
+		Cache.Logger.Debug("same user")
 		return
 	}
 	if msg.Author.Bot {
+		Cache.Logger.Debug("user is bot")
 		return
 	}
 	cev, err := Cache.Channels.GetChannel(msg.GuildID)
@@ -171,7 +174,7 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	if cev != nil {
 		isJoined, err = cev.IsActorJoined(sess)
 		if err != nil {
-			Logger.Log(logging.INFO, "Err occurred in actor joined detector")
+			Cache.Logger.Info("error occured in actor joined detector", zap.Error(err))
 			return
 		}
 	}
@@ -183,7 +186,7 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 		if len(replacedMsg) != 0 {
 			err = RawSpeak(replacedMsg, msg.GuildID, sess)
 			if err != nil {
-				Logger.Log(logging.INFO, err)
+				Cache.Logger.Info("speaking failed", zap.Error(err))
 			}
 			return
 		}
@@ -227,7 +230,7 @@ func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
 	if err != nil {
 		return fmt.Errorf("outputting: %w", err)
 	}
-	dgvoice.PlayAudioFile(cev.VoiceConn, fPath, make(chan bool))
+	dgvoice.PlayAudioFile(Cache.Logger, cev.VoiceConn, fPath, make(chan bool))
 	return nil
 }
 
@@ -275,7 +278,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	}
 	cont, err := m.ContentWithMoreMentionsReplaced(s)
 	if err != nil {
-		Logger.Log(logging.WARN, fmt.Errorf("replace mention failed `%w`", err))
+		Cache.Logger.Warn("replace mention failed", zap.Error(err), zap.Any("message", m))
 		return ""
 	}
 	// issue #84
@@ -291,7 +294,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	cev.DictController.SetGuildId(m.GuildID)
 	rawMsg, err := cev.DictController.ApplyUserDict(string(msg))
 	if err != nil {
-		Logger.Log(logging.WARN, "apply user dict failed `%w`", err)
+		Cache.Logger.Warn("apply user dict failed", zap.Error(err), zap.String("msg", rawMsg))
 		return ""
 	}
 	return stringMax(rawMsg, strLenMax)

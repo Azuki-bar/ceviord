@@ -2,8 +2,8 @@ package slashCmd
 
 import (
 	"fmt"
+
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
 )
 

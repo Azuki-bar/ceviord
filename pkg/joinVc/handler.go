@@ -5,8 +5,8 @@ import (
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/discord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
+	"go.uber.org/zap"
 )
 
 type handler struct {
@@ -15,6 +15,7 @@ type handler struct {
 	changeState    ChangeRoomState
 	user           discord.User
 	joinedChannels ceviord.Channels
+	logger         *zap.Logger
 }
 
 func (h *handler) handle(speaker func(text string, guildId string, session *discordgo.Session) error, c *ceviord.Channel) error {
@@ -90,7 +91,7 @@ func (r outRoom) GetText() string {
 
 type outOfScope struct{ ChangeRoomState }
 
-func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler, error) {
+func NewHandler(logger *zap.Logger, s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler, error) {
 	u, err := discord.NewUser(vsu.UserID, s, vsu.GuildID)
 	if err != nil {
 		return handler{}, err
@@ -106,11 +107,12 @@ func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler,
 		user:             u,
 		changeState:      cs,
 		joinedChannels:   ceviord.Cache.Channels,
+		logger:           logger,
 	}, nil
 }
 
 func VoiceStateUpdateHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) {
-	h, err := NewHandler(s, vsu)
+	h, err := NewHandler( ceviord.Cache.,s, vsu)
 	if err != nil {
 		ceviord.Logger.Log(logging.WARN, err)
 		return
