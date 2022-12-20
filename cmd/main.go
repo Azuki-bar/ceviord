@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/joinVc"
 	"github.com/azuki-bar/ceviord/pkg/slashCmd"
 	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
+	"go.uber.org/zap"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
@@ -48,7 +48,6 @@ func getConf() (*conf, error) {
 	if err == nil {
 		return &conf{param: &param, auth: &auth}, nil
 	}
-	log.Println(fmt.Errorf("parse env config `%w`", err))
 	authFile, err := os.ReadFile("./auth.yaml")
 	if err != nil {
 		return nil, err
@@ -64,24 +63,29 @@ func main() {
 	if err != nil {
 		log.Fatalln("get config failed `%w`", err)
 	}
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal("init zap failed", err)
+	}
+	ceviord.SetLogger(logger)
 	ceviord.SetParam(conf.param)
 
 	dgSess, err := discordgo.New("Bot " + conf.auth.CeviordConn.Discord)
 	if err != nil {
-		log.Println("create discord go session failed `%w`", err)
+		logger.Fatal("discord conn failed", zap.Error(err))
 		return
 	}
 
-	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { log.Println("connect to discord") })
+	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { logger.Info("discord connection established") })
 	dgSess.AddHandler(ceviord.MessageCreate)
 	dgSess.AddHandler(slashCmd.InteractionHandler)
 	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
 	// dgSess.Debug = true
-	gTalker, closer := grpc.NewTalker(&conf.auth.CeviordConn, &conf.param.Parameters[0])
+	gTalker, closer := grpc.NewTalker(logger, &conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer func() {
 		err = closer()
 		if err != nil {
-			panic(err)
+			logger.Panic("grpc connection close failed", zap.Error(err))
 		}
 	}()
 	ceviord.SetNewTalker(gTalker)
@@ -99,46 +103,46 @@ func main() {
 
 		db, err = sql.Open("mysql", conf.FormatDSN())
 		if err == nil && db.Ping() == nil {
+			// connection established
 			break
 		}
 		time.Sleep(dbTimeoutSecond)
 	}
 	if err != nil {
-		log.Println(fmt.Errorf("db connection failed `%w`", err))
+		logger.Fatal("db connection failed", zap.Error(err), zap.Int("db challenge time", dbChallengeTimes))
 		return
 	}
 	defer db.Close()
 	dialect := gorp.MySQLDialect{Engine: "InnoDB", Encoding: "utf8mb4"}
 	r, err := replace.NewReplacer(db, dialect)
 	if err != nil {
-		log.Println(fmt.Errorf("db set failed `%w`", err))
+		logger.Error("db set to replace failed", zap.Error(err))
 		return
 	}
 	ceviord.SetDbController(r)
 
 	// Open the websocket and begin listening.
 	err = dgSess.Open()
-	defer dgSess.Close()
 	if err != nil {
-		log.Fatalln(fmt.Errorf("error opening Discord session: `%w`", err))
+		logger.Fatal("error opening Discord session", zap.Error(err))
 	}
+	defer dgSess.Close()
 	sg := slashCmd.NewSlashCmdGenerator()
 	err = sg.AddCastOpt(conf.param.Parameters)
 	if err != nil {
-		log.Println("slash command generate failed")
+		logger.Error("slash command generate failed", zap.Error(err), zap.Any("parameters", conf.param.Parameters))
 	}
 	slashCmds, err := slashCmd.NewCmds(dgSess, "", sg.Generate())
 	defer func() {
 		if slashCmds != nil {
 			err = slashCmds.DeleteCmds(dgSess, "")
 			if err != nil {
-				panic(err)
+				logger.DPanic("slash command delete failed", zap.Error(err))
 			}
 		}
 	}()
 	if err != nil {
-		log.Println(fmt.Errorf("slash command applier failed `%w`", err))
-		return
+		logger.Fatal("slash command applier failed", zap.Error(err))
 	}
 
 	// Wait here until CTRL-C or other term signal is received.

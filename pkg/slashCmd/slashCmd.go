@@ -2,10 +2,11 @@ package slashCmd
 
 import (
 	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"time"
 
-	"github.com/azuki-bar/ceviord/pkg/logging"
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"go.uber.org/zap"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -65,17 +66,19 @@ func (s *Generator) Generate() []*discordgo.ApplicationCommand {
 func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	h, err := parseCommands(i.ApplicationCommandData().Name)
 	if err != nil {
-		ceviord.Logger.Log(logging.INFO, fmt.Errorf("parse command failed err is `%w`", err))
+		ceviord.Cache.Logger.Warn("parse command failed", zap.Error(err))
 		return
 	}
 	finish := make(chan bool)
 	// TODO; タイムアウト時に handle内でメッセージを送信しないように変更。
+	timeoutDuration := 2500 * time.Millisecond
 	go h.handle(finish, s, i)
 	select {
 	case <-finish:
 		return
-	case <-time.After(2500 * time.Millisecond):
-		replySimpleMsg("コネクションがタイムアウトしました。", s, i.Interaction)
+	case <-time.After(timeoutDuration):
+		replySimpleMsg(ceviord.Cache.Logger, "コネクションがタイムアウトしました。", s, i.Interaction)
+		ceviord.Cache.Logger.Error("connection timeout", zap.Duration("time out limit", timeoutDuration))
 	}
 }
 
@@ -87,17 +90,17 @@ func parseCommands(name string) (CommandHandler, error) {
 	var h CommandHandler
 	switch name {
 	case joinCmdName:
-		h = new(join)
+		h = &join{logger: ceviord.Cache.Logger}
 	case byeCmdName:
-		h = new(leave)
+		h = &leave{}
 	case helpCmdName:
 		h = new(help)
 	case "ping":
-		h = new(ping)
+		h = &ping{logger: ceviord.Cache.Logger}
 	case "dict":
-		h = new(dict)
+		h = &dict{logger: ceviord.Cache.Logger}
 	case "cast":
-		h = new(change)
+		h = &change{logger: ceviord.Cache.Logger}
 	default:
 		return nil, fmt.Errorf("command `%s` is not found", name)
 	}

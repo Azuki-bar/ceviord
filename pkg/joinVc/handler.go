@@ -5,8 +5,8 @@ import (
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/discord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
+	"go.uber.org/zap"
 )
 
 type handler struct {
@@ -15,6 +15,7 @@ type handler struct {
 	changeState    ChangeRoomState
 	user           discord.User
 	joinedChannels ceviord.Channels
+	logger         *zap.Logger
 }
 
 func (h *handler) handle(speaker func(text string, guildId string, session *discordgo.Session) error, c *ceviord.Channel) error {
@@ -34,7 +35,7 @@ type ChangeRoomState interface {
 	GetText() string
 }
 
-func NewChangeRoomState(vsu *discordgo.VoiceStateUpdate, s *discordgo.Session, cs *ceviord.Channels) ChangeRoomState {
+func NewChangeRoomState(logger *zap.Logger, vsu *discordgo.VoiceStateUpdate, s *discordgo.Session, cs *ceviord.Channels) ChangeRoomState {
 	if !cs.IsExistChannel(vsu.GuildID) {
 		return outOfScope{}
 	}
@@ -47,12 +48,12 @@ func NewChangeRoomState(vsu *discordgo.VoiceStateUpdate, s *discordgo.Session, c
 		return outOfScope{}
 	}
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		logger.Warn("something", zap.Error(err))
 		return outOfScope{}
 	}
 	scn, err := u.ScreenName()
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		logger.Warn("screen name fetch failed", zap.Error(err), zap.Any("user", u))
 		return outOfScope{}
 	}
 	var state ChangeRoomState = outOfScope{}
@@ -90,12 +91,12 @@ func (r outRoom) GetText() string {
 
 type outOfScope struct{ ChangeRoomState }
 
-func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler, error) {
+func NewHandler(logger *zap.Logger, s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler, error) {
 	u, err := discord.NewUser(vsu.UserID, s, vsu.GuildID)
 	if err != nil {
 		return handler{}, err
 	}
-	cs := NewChangeRoomState(vsu, s, &ceviord.Cache.Channels)
+	cs := NewChangeRoomState(logger, vsu, s, &ceviord.Cache.Channels)
 	if cs == nil {
 		// ignore not covered event
 		return handler{}, nil
@@ -106,23 +107,24 @@ func NewHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler,
 		user:             u,
 		changeState:      cs,
 		joinedChannels:   ceviord.Cache.Channels,
+		logger:           logger,
 	}, nil
 }
 
 func VoiceStateUpdateHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) {
-	h, err := NewHandler(s, vsu)
+	h, err := NewHandler(ceviord.Cache.Logger, s, vsu)
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		h.logger.Error("voice state update handler", zap.Error(err))
 		return
 	}
 	channel, err := ceviord.Cache.Channels.GetChannel(vsu.GuildID)
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		h.logger.Error("get channel failed", zap.Error(err))
 		return
 	}
 	err = h.handle(ceviord.RawSpeak, channel)
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, err)
+		h.logger.Error("handler failed", zap.Error(err))
 		return
 	}
 }

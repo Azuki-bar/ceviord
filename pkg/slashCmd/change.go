@@ -2,13 +2,15 @@ package slashCmd
 
 import (
 	"fmt"
+
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
+	"go.uber.org/zap"
 )
 
 type change struct {
 	changeTo string
+	logger   *zap.Logger
 }
 
 func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -22,6 +24,7 @@ func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.I
 	msg := fmt.Sprintf("successfully change cast to %s", c.changeTo)
 	if err != nil {
 		msg = err.Error()
+		c.logger.Error("message handle failed in change", zap.Error(err))
 	}
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -29,7 +32,7 @@ func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.I
 	})
 	finish <- true
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, fmt.Errorf("change handler failed. err is `%w`", err))
+		c.logger.Warn("change handler failed", zap.Error(err))
 	}
 }
 func (c *change) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {

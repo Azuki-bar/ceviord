@@ -1,15 +1,15 @@
 package slashCmd
 
 import (
-	"fmt"
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/logging"
 	"github.com/bwmarrin/discordgo"
+	"go.uber.org/zap"
 )
 
-type help struct{}
+type help struct {
+	logger *zap.Logger
+}
 
-func (*help) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h *help) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -24,6 +24,6 @@ func (*help) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interactio
 	)
 	c <- true
 	if err != nil {
-		ceviord.Logger.Log(logging.WARN, fmt.Errorf("help handler failed err is `%w`", err))
+		h.logger.Warn("interaction respond failed", zap.Error(err))
 	}
 }
