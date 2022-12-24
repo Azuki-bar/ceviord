@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type handler struct {
+type Handler struct {
 	*discordgo.VoiceStateUpdate
 	session        *discordgo.Session
 	changeState    ChangeRoomState
@@ -18,7 +18,7 @@ type handler struct {
 	logger         *zap.Logger
 }
 
-func (h *handler) handle(speaker func(text string, guildId string, session *discordgo.Session) error, c *ceviord.Channel) error {
+func (h *Handler) handle(speaker func(text string, guildId string, session *discordgo.Session) error, c *ceviord.Channel) error {
 	switch h.changeState.(type) {
 	case intoRoom, outRoom:
 		msg, err := c.DictController.ApplyUserDict(h.changeState.GetText())
@@ -91,17 +91,17 @@ func (r outRoom) GetText() string {
 
 type outOfScope struct{ ChangeRoomState }
 
-func NewHandler(logger *zap.Logger, s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (handler, error) {
+func NewHandler(logger *zap.Logger, s *discordgo.Session, vsu *discordgo.VoiceStateUpdate) (Handler, error) {
 	u, err := discord.NewUser(vsu.UserID, s, vsu.GuildID)
 	if err != nil {
-		return handler{}, err
+		return Handler{}, err
 	}
 	cs := NewChangeRoomState(logger, vsu, s, &ceviord.Cache.Channels)
 	if cs == nil {
 		// ignore not covered event
-		return handler{}, nil
+		return Handler{}, nil
 	}
-	return handler{
+	return Handler{
 		session:          s,
 		VoiceStateUpdate: vsu,
 		user:             u,

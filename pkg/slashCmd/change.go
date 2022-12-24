@@ -1,6 +1,7 @@
 package slashCmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
@@ -13,10 +14,9 @@ type change struct {
 	logger   *zap.Logger
 }
 
-func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (c *change) handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	for _, o := range i.ApplicationCommandData().Options {
-		switch o.Name {
-		case "cast":
+		if o.Name == "cast" {
 			c.changeTo = o.StringValue()
 		}
 	}
@@ -30,13 +30,13 @@ func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.I
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
-	finish <- true
+	ctx.Done()
 	if err != nil {
 		c.logger.Warn("change handler failed", zap.Error(err))
 	}
 }
-func (c *change) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
-	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)
+func (c *change) rawHandle(s *discordgo.Session, interaction *discordgo.InteractionCreate) error {
+	cev, err := ceviord.Cache.Channels.GetChannel(interaction.GuildID)
 	if err != nil {
 		return fmt.Errorf("voice connection not found")
 	}
@@ -44,10 +44,10 @@ func (c *change) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate)
 	if err != nil || !isJoin {
 		return fmt.Errorf("voice connection not found")
 	}
-	for _, p := range ceviord.Cache.Param.Parameters {
+	for i, p := range ceviord.Cache.Param.Parameters {
 		if c.changeTo == p.Name {
-			cev.CurrentParam = &p
-			if err := ceviord.RawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), i.GuildID, s); err != nil {
+			cev.CurrentParam = &ceviord.Cache.Param.Parameters[i]
+			if err := ceviord.RawSpeak(fmt.Sprintf("パラメータを %s に変更しました。", p.Name), interaction.GuildID, s); err != nil {
 				return fmt.Errorf("speaking about parameter setting: `%w`", err)
 			}
 		}

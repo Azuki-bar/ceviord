@@ -10,10 +10,10 @@ type SlashCmds struct {
 	appliedCmds []*discordgo.ApplicationCommand
 }
 
-func NewCmds(s *discordgo.Session, guildId string, cmds []*discordgo.ApplicationCommand) (*SlashCmds, error) {
+func NewCmds(s *discordgo.Session, guildID string, cmds []*discordgo.ApplicationCommand) (*SlashCmds, error) {
 	sc := SlashCmds{}
 	for _, cmd := range cmds {
-		ac, err := s.ApplicationCommandCreate(s.State.User.ID, guildId, cmd)
+		ac, err := s.ApplicationCommandCreate(s.State.User.ID, guildID, cmd)
 		if err != nil {
 			log.Printf("cmd: %+v, err: %v", cmd, err)
 			return nil, err
@@ -24,9 +24,9 @@ func NewCmds(s *discordgo.Session, guildId string, cmds []*discordgo.Application
 	return &sc, nil
 }
 
-func (sc *SlashCmds) DeleteCmds(s *discordgo.Session, guildId string) error {
+func (sc *SlashCmds) DeleteCmds(s *discordgo.Session, guildID string) error {
 	for _, cmd := range sc.appliedCmds {
-		err := s.ApplicationCommandDelete(s.State.User.ID, guildId, cmd.ID)
+		err := s.ApplicationCommandDelete(s.State.User.ID, guildID, cmd.ID)
 		if err != nil {
 			return err
 		}

@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type cevioWavGrpc struct {
+type CevioWavGrpc struct {
 	ttsClient pb.TtsClient
 	grpcConn  *grpc.ClientConn
 	param     ceviord.Parameter
@@ -23,13 +23,13 @@ type cevioWavGrpc struct {
 }
 
 // NewTalker returns wav create connection and connection close function.
-func NewTalker(logger *zap.Logger, connConf *ceviord.Conn, param *ceviord.Parameter) (*cevioWavGrpc, func() error) {
+func NewTalker(logger *zap.Logger, connConf *ceviord.Conn, param *ceviord.Parameter) (*CevioWavGrpc, func() error) {
 	conn, err := grpc.Dial(connConf.Cevio.EndPoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalln(err)
 	}
 	client := pb.NewTtsClient(conn)
-	c := &cevioWavGrpc{
+	c := &CevioWavGrpc{
 		ttsClient: client,
 		param:     *param,
 		token:     connConf.Cevio.Token,
@@ -37,7 +37,7 @@ func NewTalker(logger *zap.Logger, connConf *ceviord.Conn, param *ceviord.Parame
 	}
 	return c, c.grpcConn.Close
 }
-func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
+func (c *CevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	req := &pb.CevioTtsRequest{
@@ -64,7 +64,7 @@ func (c *cevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 	_, err = f.Write(res.Audio)
 	return err
 }
-func (c *cevioWavGrpc) ApplyEmotions(param *ceviord.Parameter) error {
+func (c *CevioWavGrpc) ApplyEmotions(param *ceviord.Parameter) error {
 	c.param = *param
 	return nil
 }

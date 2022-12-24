@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	dbTimeoutSecond  = 2 * time.Second
+	dbTimeout        = 2 * time.Second
 	dbChallengeTimes = 3
 )
 
@@ -77,7 +77,7 @@ func main() {
 	}
 
 	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { logger.Info("discord connection established") })
-	dgSess.AddHandler(ceviord.MessageCreate)
+	// dgSess.AddHandler(ceviord.MessageCreate)
 	dgSess.AddHandler(slashCmd.InteractionHandler)
 	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
 	// dgSess.Debug = true
@@ -106,7 +106,7 @@ func main() {
 			// connection established
 			break
 		}
-		time.Sleep(dbTimeoutSecond)
+		time.Sleep(dbTimeout)
 	}
 	if err != nil {
 		logger.Fatal("db connection failed", zap.Error(err), zap.Int("db challenge time", dbChallengeTimes))
