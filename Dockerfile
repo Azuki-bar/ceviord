@@ -1,7 +1,9 @@
 FROM golang:1.19.4-bullseye as builder
 
-COPY ./ /app
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . ./
 RUN make build
 
 FROM ubuntu:jammy-20220428 as runner
@@ -17,6 +19,6 @@ RUN apt-get update  \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /app/parameter.yaml /app/
-COPY --from=builder /app/ceviord /app/ceviord
-CMD /app/ceviord
+COPY --from=builder /app/parameter.yaml ./
+COPY --from=builder /app/ceviord ./ceviord
+ENTRYPOINT [ "./ceviord" ]
