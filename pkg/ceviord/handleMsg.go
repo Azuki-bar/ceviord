@@ -166,7 +166,7 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	}
 	cev, err := Cache.Channels.GetChannel(msg.GuildID)
 	if err != nil || cev == nil {
-		//todo; チャンネルに入っていないときの挙動を定義
+		// todo; チャンネルに入っていないときの挙動を定義
 		log.Println(err)
 		return
 	}
