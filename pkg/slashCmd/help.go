@@ -18,7 +18,7 @@ func (h *help) handle(ctx context.Context, s *discordgo.Session, i *discordgo.In
 			Embeds: []*discordgo.MessageEmbed{{
 				Title:       "コマンドリファレンス",
 				Description: "コマンドはこのページを参考に入力してください。",
-				URL:         "https://github.com/Azuki-bar/ceviord/blob/main/doc/cmd.md",
+				URL:         "https://github.com/Azuki-bar/ceviord/blob/main/docs/cmd.md",
 			},
 			},
 		},
