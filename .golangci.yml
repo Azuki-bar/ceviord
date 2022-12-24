@@ -19,7 +19,6 @@ linters:
     - typecheck
     - unused
     - gosec
-    - godot
     - forbidigo
     - gocritic
     - revive

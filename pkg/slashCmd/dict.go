@@ -18,7 +18,7 @@ type dict struct {
 
 func (d *dict) handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)
-	cev.DictController.SetGuildId(i.GuildID)
+	cev.DictController.SetGuildID(i.GuildID)
 	if err != nil {
 		// voice channel connection not found
 		replySimpleMsg(d.logger, fmt.Sprintf("dict handler failed. err is `%s`", err.Error()), s, i.Interaction)
@@ -67,7 +67,7 @@ func dictSubCmdParse(logger *zap.Logger, opt *discordgo.ApplicationCommandIntera
 	case "show":
 		return newDictShow(opt.Options)
 	case "dump":
-		return NewDictDump(opt.Options)
+		return &dictDump{}, nil
 	default:
 		return nil, fmt.Errorf("dict sub command parse failed. %s", opt.Name)
 	}
@@ -75,7 +75,7 @@ func dictSubCmdParse(logger *zap.Logger, opt *discordgo.ApplicationCommandIntera
 
 type (
 	dictSubCmd interface {
-		execute(guildId, authorId string) (*discordgo.InteractionResponseData, error)
+		execute(guildID, authorID string) (*discordgo.InteractionResponseData, error)
 	}
 	dictAdd struct {
 		yomi   string
@@ -109,15 +109,15 @@ func newDictAdd(logger *zap.Logger, opts []*discordgo.ApplicationCommandInteract
 	}
 	return &da, nil
 }
-func (da *dictAdd) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
+func (da *dictAdd) execute(guildID, authorID string) (*discordgo.InteractionResponseData, error) {
 	if len(da.word) == 0 || len(da.yomi) == 0 {
 		return nil, fmt.Errorf("dict add field are not satisfied")
 	}
 	if ceviord.Cache.Channels == nil {
 		return nil, fmt.Errorf("channel connection not found")
 	}
-	cev, err := ceviord.Cache.Channels.GetChannel(guildId)
-	cev.DictController.SetGuildId(guildId)
+	cev, err := ceviord.Cache.Channels.GetChannel(guildID)
+	cev.DictController.SetGuildID(guildID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +125,8 @@ func (da *dictAdd) execute(guildId, authorId string) (*discordgo.InteractionResp
 		&replace.UserDictInput{
 			Word:          da.word,
 			Yomi:          da.yomi,
-			ChangedUserId: authorId,
-			GuildId:       guildId,
+			ChangedUserID: authorID,
+			GuildID:       guildID,
 		},
 	)
 	if err != nil {
@@ -153,15 +153,15 @@ func newDictDel(logger *zap.Logger, opts []*discordgo.ApplicationCommandInteract
 	return &dd, nil
 }
 
-func (dd *dictDel) execute(guildId, _ string) (*discordgo.InteractionResponseData, error) {
+func (dd *dictDel) execute(guildID, _ string) (*discordgo.InteractionResponseData, error) {
 	if dd.id == 0 {
 		return nil, fmt.Errorf("dict del id is not provided")
 	}
-	cev, err := ceviord.Cache.Channels.GetChannel(guildId)
+	cev, err := ceviord.Cache.Channels.GetChannel(guildID)
 	if err != nil {
 		return nil, err
 	}
-	cev.DictController.SetGuildId(guildId)
+	cev.DictController.SetGuildID(guildID)
 	del, err := cev.DictController.Delete(dd.id)
 	if err != nil {
 		return nil, fmt.Errorf("dict delete failed `%w`", err)
@@ -193,8 +193,8 @@ func newDictShow(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dic
 	}
 	return &ds, nil
 }
-func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
-	dicts, err := fetchRecords(guildId, ds.limit)
+func (ds *dictShow) execute(guildID, authorID string) (*discordgo.InteractionResponseData, error) {
+	dicts, err := fetchRecords(guildID, ds.limit)
 	if err != nil {
 		return nil, err
 	}
@@ -224,9 +224,9 @@ func (ds *dictShow) execute(guildId, authorId string) (*discordgo.InteractionRes
 		Embeds: emds}, nil
 }
 
-func fetchRecords(guildId string, limit uint) (*replace.Dicts, error) {
+func fetchRecords(guildID string, limit uint) (*replace.Dicts, error) {
 	var lists []replace.Dict
-	cev, err := ceviord.Cache.Channels.GetChannel(guildId)
+	cev, err := ceviord.Cache.Channels.GetChannel(guildID)
 	if err != nil || cev == nil {
 		return nil, err
 	}
@@ -245,11 +245,8 @@ func (ds *dictShow) getOptStr() string {
 	return fmt.Sprintf("直近の%dレコードを表示します\n", ds.limit)
 }
 
-func NewDictDump(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictDump, error) {
-	return &dictDump{}, nil
-}
-func (dd *dictDump) execute(guildId, authorId string) (*discordgo.InteractionResponseData, error) {
-	dicts, err := fetchRecords(guildId, 1<<32-1)
+func (dd *dictDump) execute(guildID, authorID string) (*discordgo.InteractionResponseData, error) {
+	dicts, err := fetchRecords(guildID, 1<<32-1)
 	if err != nil {
 		return nil, err
 	}

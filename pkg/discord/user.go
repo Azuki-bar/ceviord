@@ -5,24 +5,24 @@ import "github.com/bwmarrin/discordgo"
 type User struct {
 	*discordgo.User
 	sess    *discordgo.Session
-	guildId string
+	guildID string
 }
 
-func NewUser(userId string, s *discordgo.Session, guildId string) (User, error) {
-	u, err := s.User(userId)
+func NewUser(userID string, s *discordgo.Session, guildID string) (User, error) {
+	u, err := s.User(userID)
 	if err != nil {
 		return User{}, err
 	}
 	return User{
 		User:    u,
 		sess:    s,
-		guildId: guildId,
+		guildID: guildID,
 	}, nil
 }
 
 // ScreenName returns NickName if defined, and returns Username in else.
 func (u User) ScreenName() (string, error) {
-	m, err := u.sess.GuildMember(u.guildId, u.ID)
+	m, err := u.sess.GuildMember(u.guildID, u.ID)
 	if err != nil {
 		return "", err
 	}

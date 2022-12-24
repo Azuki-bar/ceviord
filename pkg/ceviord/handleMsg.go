@@ -21,13 +21,13 @@ type Channel struct {
 	PickedChannel  string
 	VoiceConn      *discordgo.VoiceConnection
 	CurrentParam   *Parameter
-	guildId        string
+	guildID        string
 	DictController replace.DbController
 	logger         *zap.Logger
 }
 
 func (c Channel) IsActorJoined(sess *discordgo.Session) (bool, error) {
-	vcs, err := sess.State.VoiceState(c.guildId, sess.State.User.ID)
+	vcs, err := sess.State.VoiceState(c.guildID, sess.State.User.ID)
 	if err != nil {
 		c.logger.Info("actor join error", zap.Error(err))
 		return false, err
@@ -37,28 +37,28 @@ func (c Channel) IsActorJoined(sess *discordgo.Session) (bool, error) {
 
 type Channels map[string]*Channel
 
-func (cs Channels) AddChannel(c Channel, guildId string) {
-	if _, ok := cs[guildId]; !ok {
+func (cs Channels) AddChannel(c Channel, guildID string) {
+	if _, ok := cs[guildID]; !ok {
 		c.CurrentParam = &Cache.Param.Parameters[0]
-		c.guildId = guildId
+		c.guildID = guildID
 		c.DictController = Cache.dictController
-		cs[guildId] = &c
+		cs[guildID] = &c
 	}
 }
-func (cs Channels) GetChannel(guildId string) (*Channel, error) {
-	if c, ok := cs[guildId]; ok {
+func (cs Channels) GetChannel(guildID string) (*Channel, error) {
+	if c, ok := cs[guildID]; ok {
 		return c, nil
 	}
 	return nil, fmt.Errorf("voice actor connected channel is not found")
 }
-func (cs Channels) IsExistChannel(guildId string) bool {
-	_, ok := cs[guildId]
+func (cs Channels) IsExistChannel(guildID string) bool {
+	_, ok := cs[guildID]
 	return ok
 }
 
-func (cs Channels) DeleteChannel(guildId string) error {
-	if cs.IsExistChannel(guildId) {
-		delete(cs, guildId)
+func (cs Channels) DeleteChannel(guildID string) error {
+	if cs.IsExistChannel(guildID) {
+		delete(cs, guildID)
 		return nil
 	}
 	return fmt.Errorf("guild id not found")
@@ -140,8 +140,7 @@ func FindJoinedVC(s *discordgo.Session, guildID, authorID string) *discordgo.Cha
 		return nil
 	}
 	for _, c := range st {
-		switch c.Type {
-		case discordgo.ChannelTypeGuildVoice:
+		if c.Type == discordgo.ChannelTypeGuildVoice {
 			if c.ID == vcs.ChannelID {
 				return c
 			}
@@ -193,11 +192,11 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	}
 }
 
-func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
+func RawSpeak(text string, guildID string, sess *discordgo.Session) error {
 	if len(text) == 0 {
 		return fmt.Errorf("text length is 0")
 	}
-	cev, err := Cache.Channels.GetChannel(guildId)
+	cev, err := Cache.Channels.GetChannel(guildID)
 	if cev == nil {
 		return fmt.Errorf("get channel failed")
 	}
@@ -234,8 +233,8 @@ func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
 	return nil
 }
 
-func SendMsg(msg string, session *discordgo.Session, guildId string) error {
-	cev, err := Cache.Channels.GetChannel(guildId)
+func SendMsg(msg string, session *discordgo.Session, guildID string) error {
+	cev, err := Cache.Channels.GetChannel(guildID)
 	if err != nil {
 		return err
 	}
@@ -253,8 +252,8 @@ func SendMsg(msg string, session *discordgo.Session, guildId string) error {
 	return err
 }
 
-func SendEmbedMsg(embed *discordgo.MessageEmbed, session *discordgo.Session, guildId string) error {
-	cev, err := Cache.Channels.GetChannel(guildId)
+func SendEmbedMsg(embed *discordgo.MessageEmbed, session *discordgo.Session, guildID string) error {
+	cev, err := Cache.Channels.GetChannel(guildID)
 	if cev == nil {
 		return err
 	}
@@ -291,7 +290,7 @@ func GetMsg(m *discordgo.MessageCreate, s *discordgo.Session) string {
 	if err != nil {
 		return ""
 	}
-	cev.DictController.SetGuildId(m.GuildID)
+	cev.DictController.SetGuildID(m.GuildID)
 	rawMsg, err := cev.DictController.ApplyUserDict(string(msg))
 	if err != nil {
 		Cache.Logger.Warn("apply user dict failed", zap.Error(err), zap.String("msg", rawMsg))
