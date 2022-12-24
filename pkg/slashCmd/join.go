@@ -1,6 +1,7 @@
 package slashCmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -13,8 +14,8 @@ type join struct {
 	logger *zap.Logger
 }
 
-func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
-	err := j.rawHandle(s, i)
+func (j *join) handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
+	err := j.rawHandle(ctx, s, i)
 	var msg string
 	msg = "successfully joined!"
 	if err != nil {
@@ -25,12 +26,12 @@ func (j *join) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interact
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
-	c <- true
+	ctx.Done()
 	if err != nil {
 		j.logger.Warn("interaction respond failed", zap.Error(err))
 	}
 }
-func (*join) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (*join) rawHandle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	if i.Member == nil {
 		return fmt.Errorf("member field is nil. so cannot detect user status")
 	}

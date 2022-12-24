@@ -1,6 +1,7 @@
 package slashCmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -15,7 +16,7 @@ type dict struct {
 	logger *zap.Logger
 }
 
-func (d *dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (d *dict) handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)
 	cev.DictController.SetGuildId(i.GuildID)
 	if err != nil {
@@ -41,7 +42,7 @@ func (d *dict) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interact
 	if err != nil {
 		log.Println(err)
 	}
-	c <- true
+	ctx.Done()
 }
 
 func replySimpleMsg(logger *zap.Logger, msg string, s *discordgo.Session, i *discordgo.Interaction) {

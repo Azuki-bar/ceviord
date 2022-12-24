@@ -1,6 +1,7 @@
 package slashCmd
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -69,12 +70,13 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		ceviord.Cache.Logger.Warn("parse command failed", zap.Error(err))
 		return
 	}
-	finish := make(chan bool)
-	// TODO; タイムアウト時に handle内でメッセージを送信しないように変更。
 	timeoutDuration := 2500 * time.Millisecond
-	go h.handle(finish, s, i)
+	ctx, close := context.WithTimeout(context.Background(), timeoutDuration)
+	defer close()
+	// TODO; タイムアウト時に handle内でメッセージを送信しないように変更。
+	go h.handle(ctx, s, i)
 	select {
-	case <-finish:
+	case <-ctx.Done():
 		return
 	case <-time.After(timeoutDuration):
 		replySimpleMsg(ceviord.Cache.Logger, "コネクションがタイムアウトしました。", s, i.Interaction)
@@ -83,7 +85,7 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 }
 
 type CommandHandler interface {
-	handle(finished chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate)
+	handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate)
 }
 
 func parseCommands(name string) (CommandHandler, error) {

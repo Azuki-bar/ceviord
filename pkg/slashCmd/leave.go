@@ -1,6 +1,7 @@
 package slashCmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
@@ -12,7 +13,7 @@ type leave struct {
 	logger *zap.Logger
 }
 
-func (l *leave) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (l *leave) handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := l.rawHandle(s, i)
 	var msg string
 	msg = "successfully leaved!"
@@ -27,7 +28,7 @@ func (l *leave) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.In
 	if err != nil {
 		l.logger.Warn("error in leave interaction respond", zap.Error(err))
 	}
-	finish <- true
+	ctx.Done()
 }
 func (l *leave) rawHandle(s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	cev, err := ceviord.Cache.Channels.GetChannel(i.GuildID)

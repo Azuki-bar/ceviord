@@ -212,8 +212,6 @@ func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
 	if err != nil {
 		return err
 	}
-	Cache.mutex.Lock()
-	defer Cache.mutex.Unlock()
 	buf := make([]byte, 16)
 	_, err = rand.Read(buf)
 	if err != nil {
@@ -230,6 +228,8 @@ func RawSpeak(text string, guildId string, sess *discordgo.Session) error {
 	if err != nil {
 		return fmt.Errorf("outputting: %w", err)
 	}
+	Cache.mutex.Lock()
+	defer Cache.mutex.Unlock()
 	dgvoice.PlayAudioFile(Cache.Logger, cev.VoiceConn, fPath, make(chan bool))
 	return nil
 }

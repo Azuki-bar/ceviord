@@ -77,7 +77,7 @@ func main() {
 	}
 
 	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { logger.Info("discord connection established") })
-	dgSess.AddHandler(ceviord.MessageCreate)
+	// dgSess.AddHandler(ceviord.MessageCreate)
 	dgSess.AddHandler(slashCmd.InteractionHandler)
 	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
 	// dgSess.Debug = true

@@ -1,6 +1,7 @@
 package slashCmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
@@ -13,7 +14,7 @@ type change struct {
 	logger   *zap.Logger
 }
 
-func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (c *change) handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	for _, o := range i.ApplicationCommandData().Options {
 		switch o.Name {
 		case "cast":
@@ -30,7 +31,7 @@ func (c *change) handle(finish chan<- bool, s *discordgo.Session, i *discordgo.I
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{Content: msg},
 	})
-	finish <- true
+	ctx.Done()
 	if err != nil {
 		c.logger.Warn("change handler failed", zap.Error(err))
 	}

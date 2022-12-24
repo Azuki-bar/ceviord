@@ -1,6 +1,8 @@
 package slashCmd
 
 import (
+	"context"
+
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
 )
@@ -9,7 +11,7 @@ type help struct {
 	logger *zap.Logger
 }
 
-func (h *help) handle(c chan<- bool, s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h *help) handle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -22,7 +24,7 @@ func (h *help) handle(c chan<- bool, s *discordgo.Session, i *discordgo.Interact
 		},
 	},
 	)
-	c <- true
+	ctx.Done()
 	if err != nil {
 		h.logger.Warn("interaction respond failed", zap.Error(err))
 	}
