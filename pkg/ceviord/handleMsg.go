@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/azuki-bar/ceviord/pkg/dgvoice"
 	"github.com/azuki-bar/ceviord/pkg/replace"
+	"github.com/azuki-bar/ceviord/third_party/dgvoice"
 	"go.uber.org/zap"
 
 	"github.com/bwmarrin/discordgo"

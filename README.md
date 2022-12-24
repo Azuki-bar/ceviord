@@ -1,4 +1,6 @@
 # Ceviord
+[![Go Report Card](https://goreportcard.com/badge/github.com/azuki-bar/ceviord)](https://goreportcard.com/report/github.com/azuki-bar/ceviord)
+[![Go Reference](https://pkg.go.dev/badge/github.com/azuki-bar/ceviord.svg)](https://pkg.go.dev/github.com/azuki-bar/ceviord)
 
 Discord 上のテキストチャンネルに投稿したメッセージを読みあげる bot です。[CeVIGO](https://github.com/gotti/cevigo) を用いて CeVIO AI の API を利用しています。
 
