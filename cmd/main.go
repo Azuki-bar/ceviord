@@ -48,6 +48,7 @@ func getConf() (*conf, error) {
 	if err == nil {
 		return &conf{param: &param, auth: &auth}, nil
 	}
+	log.Print("read config from env vars occurs error", err)
 	authFile, err := os.ReadFile("./auth.yaml")
 	if err != nil {
 		return nil, err
@@ -67,6 +68,7 @@ func main() {
 	if err != nil {
 		log.Fatal("init zap failed", err)
 	}
+	logger.Info("logger initialize successful!", zap.Stringer("logLevel", logger.Level()))
 	ceviord.SetLogger(logger)
 	ceviord.SetParam(conf.param)
 
