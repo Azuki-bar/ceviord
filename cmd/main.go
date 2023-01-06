@@ -62,12 +62,9 @@ func getConf() (*conf, error) {
 func main() {
 	conf, err := getConf()
 	if err != nil {
-		log.Fatalln("get config failed `%w`", err)
+		log.Fatalf("get config failed err=`%s`", err)
 	}
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		log.Fatal("init zap failed", err)
-	}
+	logger := zap.Must(zap.NewDevelopment())
 	logger.Info("logger initialize successful!", zap.Stringer("logLevel", logger.Level()))
 	ceviord.SetLogger(logger)
 	ceviord.SetParam(conf.param)
