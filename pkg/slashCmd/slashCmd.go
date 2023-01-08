@@ -3,7 +3,6 @@ package slashCmd
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"go.uber.org/zap"
@@ -21,12 +20,15 @@ const (
 )
 
 type Generator struct {
-	cmds []*discordgo.ApplicationCommand
+	cmds   []*discordgo.ApplicationCommand
+	logger *zap.Logger
 }
 
-func NewSlashCmdGenerator() *Generator {
-	s := Generator{cmds: slashCmdList}
-	return &s
+func NewSlashCmdGenerator(logger *zap.Logger) *Generator {
+	return &Generator{
+		cmds:   slashCmdList,
+		logger: logger,
+	}
 }
 func (s *Generator) AddCastOpt(ps []ceviord.Parameter) error {
 	var c *discordgo.ApplicationCommand
@@ -70,18 +72,9 @@ func InteractionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		ceviord.Cache.Logger.Warn("parse command failed", zap.Error(err))
 		return
 	}
-	timeoutDuration := 2500 * time.Millisecond
-	ctx, close := context.WithTimeout(context.Background(), timeoutDuration)
-	defer close()
-	// TODO; タイムアウト時に handle内でメッセージを送信しないように変更。
+	ctx := context.Background()
 	go h.handle(ctx, s, i)
-	select {
-	case <-ctx.Done():
-		return
-	case <-time.After(timeoutDuration):
-		replySimpleMsg(ceviord.Cache.Logger, "コネクションがタイムアウトしました。", s, i.Interaction)
-		ceviord.Cache.Logger.Error("connection timeout", zap.Duration("time out limit", timeoutDuration))
-	}
+	<-ctx.Done()
 }
 
 type CommandHandler interface {
