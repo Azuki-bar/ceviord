@@ -3,7 +3,6 @@ package slashCmd
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/bwmarrin/discordgo"
@@ -31,7 +30,7 @@ func (j *join) handle(ctx context.Context, s *discordgo.Session, i *discordgo.In
 		j.logger.Warn("interaction respond failed", zap.Error(err))
 	}
 }
-func (*join) rawHandle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) error {
+func (j *join) rawHandle(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) error {
 	if i.Member == nil {
 		return fmt.Errorf("member field is nil. so cannot detect user status")
 	}
@@ -51,12 +50,13 @@ func (*join) rawHandle(ctx context.Context, s *discordgo.Session, i *discordgo.I
 	}
 	voiceConn, err := s.ChannelVoiceJoin(i.GuildID, vc.ID, false, true)
 	if err != nil {
-		log.Println(fmt.Errorf("joining: %w", err))
+		j.logger.Error("channel joining failed", zap.Error(err), zap.String("guildID", i.GuildID))
 		return err
 	}
 	ceviord.Cache.Channels.AddChannel(
 		ceviord.Channel{PickedChannel: i.ChannelID, VoiceConn: voiceConn},
 		i.GuildID,
 	)
+	j.logger.Debug("add channel successful!", zap.String("channelID", i.ChannelID), zap.String("guildID", i.GuildID))
 	return nil
 }
