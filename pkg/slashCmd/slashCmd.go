@@ -87,7 +87,7 @@ func parseCommands(name string) (CommandHandler, error) {
 	case joinCmdName:
 		h = &join{logger: ceviord.Cache.Logger}
 	case byeCmdName:
-		h = &leave{}
+		h = &leave{logger: ceviord.Cache.Logger}
 	case helpCmdName:
 		h = new(help)
 	case "ping":
