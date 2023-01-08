@@ -8,7 +8,6 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
-	"github.com/k0kubun/pp"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +30,7 @@ func (d *dict) handle(ctx context.Context, s *discordgo.Session, i *discordgo.In
 	}
 	response, err := subCmd.execute(i.GuildID, i.Member.User.ID)
 	if err != nil {
-		pp.Print(err)
+		d.logger.Error("sub command executer failed", zap.Error(err), zap.String("guildID", i.GuildID))
 		replySimpleMsg(d.logger, fmt.Sprintf("dict sub cmd handler failed. err is `%s`", err.Error()), s, i.Interaction)
 		return
 	}
@@ -65,7 +64,7 @@ func dictSubCmdParse(logger *zap.Logger, opt *discordgo.ApplicationCommandIntera
 	case "del":
 		return newDictDel(logger, opt.Options)
 	case "show":
-		return newDictShow(opt.Options)
+		return newDictShow(logger, opt.Options)
 	case "dump":
 		return &dictDump{}, nil
 	default:
@@ -89,6 +88,7 @@ type (
 	dictShow struct {
 		isLatest bool
 		limit    uint
+		logger   *zap.Logger
 	}
 	dictDump struct {
 	}
@@ -178,8 +178,8 @@ func (dd *dictDel) execute(guildID, _ string) (*discordgo.InteractionResponseDat
 
 const defaultDictShowLimit = 10
 
-func newDictShow(opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictShow, error) {
-	ds := dictShow{limit: 0, isLatest: false}
+func newDictShow(logger *zap.Logger, opt []*discordgo.ApplicationCommandInteractionDataOption) (*dictShow, error) {
+	ds := dictShow{limit: 0, isLatest: false, logger: logger}
 	for _, o := range opt {
 		switch o.Name {
 		case "length":
@@ -218,7 +218,7 @@ func (ds *dictShow) execute(guildID, authorID string) (*discordgo.InteractionRes
 		}
 		emds = append(emds, &e)
 	}
-	pp.Println(emds)
+	ds.logger.Debug("embed msg", zap.Any("embed messages", emds))
 	return &discordgo.InteractionResponseData{
 		Title:  "dict record",
 		Embeds: emds}, nil
@@ -270,7 +270,7 @@ func (dd *dictDump) execute(guildID, authorID string) (*discordgo.InteractionRes
 		}
 		emds = append(emds, &e)
 	}
-	pp.Println(emds)
+
 	return &discordgo.InteractionResponseData{
 		Title:  "dict record",
 		Embeds: emds}, nil

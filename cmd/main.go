@@ -126,7 +126,7 @@ func main() {
 		logger.Fatal("error opening Discord session", zap.Error(err))
 	}
 	defer dgSess.Close()
-	sg := slashCmd.NewSlashCmdGenerator()
+	sg := slashCmd.NewSlashCmdGenerator(logger)
 	err = sg.AddCastOpt(conf.param.Parameters)
 	if err != nil {
 		logger.Error("slash command generate failed", zap.Error(err), zap.Any("parameters", conf.param.Parameters))
