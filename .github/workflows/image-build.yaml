@@ -23,7 +23,7 @@ jobs:
           branch=${GITHUB_REF##*/}
           sha=${GITHUB_SHA::8}
           ts=$(date +%s)
-          echo BUILD_ID=${branch}-${sha}-${ts} >> ${GITHUB_ENV}
+          echo "BUILD_ID=${branch}-${sha}-${ts}" >> ${GITHUB_ENV}
 
       - name: set lower case owner name
         run: echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
