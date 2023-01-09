@@ -1,5 +1,6 @@
 FROM golang:1.19.4-bullseye as builder
 
+ARG VERSION=snapshot
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
@@ -22,3 +23,4 @@ WORKDIR /app
 COPY --from=builder /app/parameter.yaml ./
 COPY --from=builder /app/ceviord ./ceviord
 ENTRYPOINT [ "./ceviord" ]
+

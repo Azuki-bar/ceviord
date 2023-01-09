@@ -156,7 +156,7 @@ func MessageCreate(sess *discordgo.Session, msg *discordgo.MessageCreate) {
 	// Ignore all messages created by the bot itself
 	// This isn't required in this specific example, but it's a good practice.
 	if msg.Author.ID == sess.State.User.ID {
-		Cache.Logger.Debug("same user")
+		Cache.Logger.Debug("handle sasara's msg")
 		return
 	}
 	if msg.Author.Bot {

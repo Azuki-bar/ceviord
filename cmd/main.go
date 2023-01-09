@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/azuki-bar/ceviord/pkg/slashCmd"
 	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
+	"github.com/samber/lo"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-gorp/gorp"
@@ -84,6 +86,9 @@ func getConf() (*conf, error) {
 	}
 	return &conf{param: &param, auth: &auth}, nil
 }
+func init() {
+	log.Printf("version: %s", Version)
+}
 
 func main() {
 	conf, err := getConf()
@@ -91,6 +96,7 @@ func main() {
 		log.Fatalf("get config failed err=`%s`", err)
 	}
 	logger := zap.Must(zap.NewDevelopment(zap.IncreaseLevel(zapcore.Level(*conf.log.Level))))
+	defer func() { _ = logger.Sync() }()
 	logger.Info("logger initialize successful!",
 		zap.Stringer("logLevel", logger.Level()),
 		zap.String("ceviord version", Version),
@@ -103,12 +109,17 @@ func main() {
 		logger.Fatal("discord conn failed", zap.Error(err))
 		return
 	}
-
-	dgSess.AddHandler(func(_ *discordgo.Session, _ *discordgo.Connect) { logger.Info("discord connection established") })
-	dgSess.AddHandler(slashCmd.InteractionHandler)
-	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
-	dgSess.AddHandler(ceviord.MessageCreate)
-	dgSess.Debug = logger.Level() <= zap.DebugLevel
+	closeFuncs := make([]func(), 0)
+	addHandler := func(handlerFunc any) {
+		f := dgSess.AddHandler(handlerFunc)
+		closeFuncs = append(closeFuncs, f)
+	}
+	addHandler(func(_ *discordgo.Session, _ *discordgo.Connect) { logger.Info("discord connection established") })
+	addHandler(slashCmd.InteractionHandler)
+	addHandler(joinVc.VoiceStateUpdateHandler)
+	addHandler(ceviord.MessageCreate)
+	// f := dgSess.AddHandler()
+	// dgSess.Debug = logger.Level() <= zap.DebugLevel
 	gTalker, closer := grpc.NewTalker(logger, &conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer func() {
 		if err = closer(); err != nil {
@@ -154,7 +165,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("error opening Discord session", zap.Error(err))
 	}
-	defer dgSess.Close()
+	defer func() { dgSess.Close(); logger.Info("discord session closed") }()
 	logger.Info("discord session opened")
 	sg := slashCmd.NewSlashCmdGenerator(logger)
 	err = sg.AddCastOpt(conf.param.Parameters)
@@ -165,10 +176,21 @@ func main() {
 		logger.Fatal("slash command applier failed", zap.Error(err))
 	}
 
+	logger.Info("slash command apply all finished")
+	gameStatus := fmt.Sprintf("version: %s", Version)
+	if err := dgSess.UpdateGameStatus(0, gameStatus); err != nil {
+		logger.Error("updateGameStatus returns err", zap.Error(err))
+	}
+	logger.Info("Update Game Status finish", zap.String("msg", gameStatus))
+
+	logger.Info("wait for stop signal, Ctrl-C")
 	// Wait here until CTRL-C or other term signal is received.
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	<-sc
+	sig := <-sc
+	// time.Sleep(10 * time.Second)
+	logger.Info("handle signal", zap.Stringer("signal", sig))
+	lo.ForEach(closeFuncs, func(item func(), _ int) { go item() })
 	sem := make(chan struct{}, 4)
 	wg := sync.WaitGroup{}
 	for k, v := range dgSess.VoiceConnections {
@@ -177,11 +199,14 @@ func main() {
 		wg.Add(1)
 		go func() {
 			sem <- struct{}{}
-			defer func() { <-sem }()
+			defer func() { <-sem; wg.Done() }()
 			v.Close()
+			if err := v.Disconnect(); err != nil {
+				logger.Error("disconn err", zap.Error(err))
+			}
 			logger.Info("close vc connection", zap.String("guildID", k))
-			wg.Done()
 		}()
 	}
+
 	wg.Wait()
 }
