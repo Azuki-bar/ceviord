@@ -44,8 +44,8 @@ jobs:
           push: true
           context: .
           file: ./Dockerfile
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ steps.prep.outputs.BUILD_ID }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ env.BUILD_ID }}
           #          platforms: linux/amd64,linux/arm64
           platforms: linux/amd64
           build-args: |
-            VERSION=${{ steps.commitsha.outputs.SHA_8 }}
+            VERSION=${{ env.SHA_8 }}
