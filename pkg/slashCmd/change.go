@@ -32,7 +32,7 @@ func (c *change) handle(ctx context.Context, s *discordgo.Session, i *discordgo.
 	})
 	ctx.Done()
 	if err != nil {
-		c.logger.Warn("change handler failed", zap.Error(err))
+		c.logger.Error("change handler failed", zap.Error(err))
 	}
 }
 func (c *change) rawHandle(s *discordgo.Session, interaction *discordgo.InteractionCreate) error {

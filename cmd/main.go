@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/joinVc"
@@ -27,9 +26,8 @@ import (
 )
 
 var (
-	dbTimeout        = 2 * time.Second
-	dbChallengeTimes = 3
-	Version          = "snapshot"
+	// replaced when build this plogram
+	Version = "snapshot"
 )
 
 type conf struct {
@@ -86,9 +84,6 @@ func getConf() (*conf, error) {
 	}
 	return &conf{param: &param, auth: &auth}, nil
 }
-func init() {
-	log.Printf("version: %s", Version)
-}
 
 func main() {
 	conf, err := getConf()
@@ -99,11 +94,29 @@ func main() {
 	defer func() { _ = logger.Sync() }()
 	logger.Info("logger initialize successful!",
 		zap.Stringer("logLevel", logger.Level()),
-		zap.String("ceviord version", Version),
+		zap.String("version", Version),
 	)
+	// discordgo.Logger provides package wide logging consistency for discordgo
+	// the format, a...  portion this command follows that of fmt.Printf
+	//   msgL   : LogLevel of the message
+	//   caller : 1 + the number of callers away from the message source
+	//   format : Printf style message format
+	//   a ...  : comma separated list of values to pass
+	discordgo.Logger = func(msgL, caller int, format string, a ...interface{}) {
+		switch msgL {
+		case discordgo.LogDebug:
+			logger.Debug("discordgo log", zap.String("msg from discordgo", fmt.Sprintf(format, a)))
+		case discordgo.LogInformational:
+			logger.Info("discordgo log", zap.String("msg from discordgo", fmt.Sprintf(format, a)))
+		case discordgo.LogWarning:
+			logger.Warn("discordgo log", zap.String("msg from discordgo", fmt.Sprintf(format, a)))
+		case discordgo.LogError:
+			logger.Error("discordgo log", zap.String("msg from discordgo", fmt.Sprintf(format, a)))
+		default:
+		}
+	}
 	ceviord.SetLogger(logger)
 	ceviord.SetParam(conf.param)
-
 	dgSess, err := discordgo.New("Bot " + conf.auth.CeviordConn.Discord)
 	if err != nil {
 		logger.Fatal("discord conn failed", zap.Error(err))
@@ -118,7 +131,6 @@ func main() {
 	addHandler(slashCmd.InteractionHandler)
 	addHandler(joinVc.VoiceStateUpdateHandler)
 	addHandler(ceviord.MessageCreate)
-	// f := dgSess.AddHandler()
 	// dgSess.Debug = logger.Level() <= zap.DebugLevel
 	gTalker, closer := grpc.NewTalker(logger, &conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer func() {
@@ -128,28 +140,23 @@ func main() {
 	}()
 	ceviord.SetNewTalker(gTalker)
 
-	var db *sql.DB
-	for i := 1; i <= dbChallengeTimes; i++ {
-		dbConf := conf.auth.CeviordConn.DB
-		conf := mysql.NewConfig()
-		conf.User = dbConf.User
-		conf.Passwd = dbConf.Password
-		conf.Net = dbConf.Protocol
-		conf.Addr = dbConf.Addr
-		conf.DBName = dbConf.Name
-		conf.ParseTime = true
-
-		db, err = sql.Open("mysql", conf.FormatDSN())
-		if err == nil && db.Ping() == nil {
-			// connection established
-			logger.Info("db connection is estabilished")
-			break
-		}
-		time.Sleep(dbTimeout)
-	}
+	dbConf := func(c ceviord.DB) *mysql.Config {
+		newConf := mysql.NewConfig()
+		newConf.User = c.User
+		newConf.Passwd = c.Password
+		newConf.Net = c.Protocol
+		newConf.Addr = c.Addr
+		newConf.DBName = c.Name
+		newConf.ParseTime = true
+		return newConf
+	}(conf.auth.CeviordConn.DB)
+	db, err := sql.Open("mysql", dbConf.FormatDSN())
 	if err != nil {
-		logger.Fatal("db connection failed", zap.Error(err), zap.Int("db challenge time", dbChallengeTimes))
+		logger.Fatal("db connection failed", zap.Error(err))
 		return
+	}
+	if err == nil && db.Ping() == nil {
+		logger.Info("db connection is estabilished")
 	}
 	defer db.Close()
 	dialect := gorp.MySQLDialect{Engine: "InnoDB", Encoding: "utf8mb4"}
@@ -160,9 +167,7 @@ func main() {
 	}
 	ceviord.SetDbController(r)
 
-	// Open the websocket and begin listening.
-	err = dgSess.Open()
-	if err != nil {
+	if err := dgSess.Open(); err != nil {
 		logger.Fatal("error opening Discord session", zap.Error(err))
 	}
 	defer func() { dgSess.Close(); logger.Info("discord session closed") }()
@@ -188,9 +193,8 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	sig := <-sc
-	// time.Sleep(10 * time.Second)
 	logger.Info("handle signal", zap.Stringer("signal", sig))
-	lo.ForEach(closeFuncs, func(item func(), _ int) { go item() })
+	lo.ForEach(closeFuncs, func(item func(), _ int) { go item(); logger.Debug("handler deleting") })
 	sem := make(chan struct{}, 4)
 	wg := sync.WaitGroup{}
 	for k, v := range dgSess.VoiceConnections {
@@ -207,6 +211,5 @@ func main() {
 			logger.Info("close vc connection", zap.String("guildID", k))
 		}()
 	}
-
 	wg.Wait()
 }

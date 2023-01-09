@@ -84,13 +84,13 @@ func TestRecords_Replace(t *testing.T) {
 			name: "Github", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "GITHUB", Yomi: "ぎっとはぶ"}},
 			},
-			args: args{msg: `Github`}, want: `ぎっとはぶ`,
+			args: args{msg: `GitHub`}, want: `ぎっとはぶ`,
 		},
 		{
 			name: "Github", ds: Dicts{
 				Dict{UserDictInput: UserDictInput{Word: "GITHUB", Yomi: "ぎっとはぶ"}},
 			},
-			args: args{msg: `GithubABC`}, want: `ぎっとはぶABC`,
+			args: args{msg: `GitHubABC`}, want: `ぎっとはぶABC`,
 		},
 	}
 	for _, tt := range tests {

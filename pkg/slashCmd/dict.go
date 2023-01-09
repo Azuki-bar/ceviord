@@ -3,7 +3,6 @@ package slashCmd
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
@@ -39,7 +38,7 @@ func (d *dict) handle(ctx context.Context, s *discordgo.Session, i *discordgo.In
 		Data: response,
 	})
 	if err != nil {
-		log.Println(err)
+		d.logger.Warn("interaction respond err", zap.Error(err))
 	}
 	ctx.Done()
 }
