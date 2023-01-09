@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/go-gorp/gorp"
+	"go.uber.org/zap"
+
 	// gorpが依存しています
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
@@ -32,6 +34,7 @@ type Dict struct {
 type Replacer struct {
 	gorpDb  *gorp.DbMap
 	guildID string
+	logger  *zap.Logger
 }
 type DbController interface {
 	Add(dict *UserDictInput) error
@@ -52,8 +55,8 @@ func initDb(db *sql.DB, dialect gorp.Dialect) (*gorp.DbMap, error) {
 	}
 	return dbMap, nil
 }
-func NewReplacer(db *sql.DB, dialect gorp.Dialect) (*Replacer, error) {
-	rs := &Replacer{}
+func NewReplacer(logger *zap.Logger, db *sql.DB, dialect gorp.Dialect) (*Replacer, error) {
+	rs := &Replacer{logger: logger}
 	dbMap, err := initDb(db, dialect)
 	if err != nil {
 		return nil, err
@@ -62,7 +65,7 @@ func NewReplacer(db *sql.DB, dialect gorp.Dialect) (*Replacer, error) {
 	return rs, nil
 }
 
-// TODO; guildIdを受け取り、そのGuildIDを保存する構造体を作成。その構造体にAddやdelのメソッドを実装する。
+// TODO: guildIdを受け取り、そのGuildIDを保存する構造体を作成。その構造体にAddやdelのメソッドを実装する。
 // AddやDelは使い捨ての構造体のメソッドに
 
 func (rs *Replacer) SetGuildID(guildID string) { rs.guildID = guildID }
@@ -144,20 +147,21 @@ func (rs *Replacer) DumpAtoB(from, to uint) ([]Dict, error) {
 	return dictList, nil
 }
 
-func ApplySysDict(msg string) string {
-	type dict struct {
-		before *regexp.Regexp
-		after  string
-	}
-	dicts := []dict{
-		{before: regexp.MustCompile(`https?://.*`), after: "URL "},
-		{before: regexp.MustCompile("(?s)```(.*)```"), after: "コードブロック"},
-		{before: regexp.MustCompile("~~(.+)~~"), after: " ピーー"},
-		{before: regexp.MustCompile("\n"), after: " "},
-		{before: regexp.MustCompile("~"), after: "ー"},
-		{before: regexp.MustCompile("〜"), after: "ー"},
-	}
+type dict struct {
+	before *regexp.Regexp
+	after  string
+}
 
+var dicts = []dict{
+	{before: regexp.MustCompile(`https?://.*`), after: "URL "},
+	{before: regexp.MustCompile("(?s)```(.*)```"), after: "コードブロック"},
+	{before: regexp.MustCompile("~~(.+)~~"), after: " ピーー"},
+	{before: regexp.MustCompile("\n"), after: " "},
+	{before: regexp.MustCompile("~"), after: "ー"},
+	{before: regexp.MustCompile("〜"), after: "ー"},
+}
+
+func ApplySysDict(msg string) string {
 	for _, d := range dicts {
 		msg = d.before.ReplaceAllString(msg, d.after)
 	}

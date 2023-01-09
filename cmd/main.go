@@ -12,6 +12,7 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/slashCmd"
 	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
@@ -26,11 +27,17 @@ import (
 var (
 	dbTimeout        = 2 * time.Second
 	dbChallengeTimes = 3
+	Version          = "snapshot"
 )
 
 type conf struct {
 	param *ceviord.Param
 	auth  *ceviord.Auth
+	log   logConf
+}
+
+type logConf struct {
+	Level *zapcore.Level `yaml:""`
 }
 
 func getConf() (*conf, error) {
@@ -64,8 +71,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("get config failed err=`%s`", err)
 	}
-	logger := zap.Must(zap.NewDevelopment())
-	logger.Info("logger initialize successful!", zap.Stringer("logLevel", logger.Level()))
+	logger := zap.Must(zap.NewDevelopment(zap.IncreaseLevel(conf.log.Level)))
+	logger.Info("logger initialize successful!",
+		zap.Stringer("logLevel", logger.Level()),
+		zap.String("ceviord version", Version),
+	)
 	ceviord.SetLogger(logger)
 	ceviord.SetParam(conf.param)
 
@@ -75,10 +85,10 @@ func main() {
 		return
 	}
 
-	dgSess.AddHandler(func(s *discordgo.Session, _ *discordgo.Connect) { logger.Info("discord connection established") })
-	// dgSess.AddHandler(ceviord.MessageCreate)
+	dgSess.AddHandler(func(_ *discordgo.Session, _ *discordgo.Connect) { logger.Info("discord connection established") })
 	dgSess.AddHandler(slashCmd.InteractionHandler)
 	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
+	dgSess.AddHandler(ceviord.MessageCreate)
 	// dgSess.Debug = true
 	gTalker, closer := grpc.NewTalker(logger, &conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer func() {
@@ -113,7 +123,7 @@ func main() {
 	}
 	defer db.Close()
 	dialect := gorp.MySQLDialect{Engine: "InnoDB", Encoding: "utf8mb4"}
-	r, err := replace.NewReplacer(db, dialect)
+	r, err := replace.NewReplacer(logger, db, dialect)
 	if err != nil {
 		logger.Error("db set to replace failed", zap.Error(err))
 		return
@@ -126,21 +136,13 @@ func main() {
 		logger.Fatal("error opening Discord session", zap.Error(err))
 	}
 	defer dgSess.Close()
+	logger.Info("discord session opened")
 	sg := slashCmd.NewSlashCmdGenerator(logger)
 	err = sg.AddCastOpt(conf.param.Parameters)
 	if err != nil {
 		logger.Error("slash command generate failed", zap.Error(err), zap.Any("parameters", conf.param.Parameters))
 	}
-	slashCmds, err := slashCmd.NewCmds(dgSess, "", sg.Generate())
-	defer func() {
-		if slashCmds != nil {
-			err = slashCmds.DeleteCmds(dgSess, "")
-			if err != nil {
-				logger.DPanic("slash command delete failed", zap.Error(err))
-			}
-		}
-	}()
-	if err != nil {
+	if _, err := slashCmd.NewCmds(dgSess, "", sg.Generate()); err != nil {
 		logger.Fatal("slash command applier failed", zap.Error(err))
 	}
 
@@ -148,4 +150,12 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
+	for k, v := range dgSess.VoiceConnections {
+		k := k
+		v := v
+		go func() {
+			v.Close()
+			logger.Info("close vc connection", zap.String("guildID", k))
+		}()
+	}
 }
