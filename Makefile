@@ -5,7 +5,7 @@ run:
 	go run cmd/main.go
 
 build:
-	go build -ldflags '-X main.Version=prod' -o ceviord cmd/main.go
+	go build -ldflags '-X main.Version=$(VERSION)' -o ceviord cmd/main.go
 
 test:
 	go test -v ./...

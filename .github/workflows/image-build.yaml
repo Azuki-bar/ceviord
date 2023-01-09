@@ -2,7 +2,7 @@ name: Create and publish a Docker image
 
 on:
   push:
-    branches: [ 'main' ]
+    branches: ["main"]
 
 env:
   REGISTRY: ghcr.io
@@ -20,7 +20,7 @@ jobs:
           branch=${GITHUB_REF##*/}
           sha=${GITHUB_SHA::8}
           ts=$(date +%s)
-          echo "::set-output name=BUILD_ID::${branch}-${sha}-${ts}"          
+          echo "::set-output name=BUILD_ID::${branch}-${sha}-${ts}"
 
       - name: set lower case owner name
         run: |
@@ -43,5 +43,6 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ steps.prep.outputs.BUILD_ID }}
-#          platforms: linux/amd64,linux/arm64
+          #          platforms: linux/amd64,linux/arm64
           platforms: linux/amd64
+          args: "VERSION=${GITHUB_SHA::8}"
