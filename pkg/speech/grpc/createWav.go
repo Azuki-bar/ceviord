@@ -8,6 +8,7 @@ import (
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	pb "github.com/azuki-bar/ceviord/spec"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -47,7 +48,7 @@ func (c *CevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 		Pitch:    uint32(c.param.Tone),
 		Alpha:    uint32(c.param.Alpha),
 		Intro:    uint32(c.param.Tonescale),
-		Emotions: typeCast(c.param.Emotions),
+		Emotions: lo.MapValues(c.param.Emotions, func(v int, _ string) uint32 { return uint32(v) }),
 		Token:    c.token,
 	}
 	res, err := c.ttsClient.CreateWav(ctx, req)
@@ -66,12 +67,4 @@ func (c *CevioWavGrpc) OutputWaveToFile(talkWord, path string) error {
 func (c *CevioWavGrpc) ApplyEmotions(param *ceviord.Parameter) error {
 	c.param = *param
 	return nil
-}
-
-func typeCast(m map[string]int) map[string]uint32 {
-	n := make(map[string]uint32)
-	for k, v := range m {
-		n[k] = uint32(v)
-	}
-	return n
 }

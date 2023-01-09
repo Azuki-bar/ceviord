@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 
 	"github.com/bwmarrin/discordgo"
@@ -52,13 +53,12 @@ func (s *Generator) AddCastOpt(ps []ceviord.Parameter) error {
 		return fmt.Errorf("cast option not found")
 	}
 	co := c.Options[castOptPos]
-	for _, p := range ps {
-		co.Choices = append(co.Choices,
-			&discordgo.ApplicationCommandOptionChoice{
-				Name:  p.Name,
-				Value: p.Name,
-			})
-	}
+	co.Choices = lo.Map(ps, func(item ceviord.Parameter, index int) *discordgo.ApplicationCommandOptionChoice {
+		return &discordgo.ApplicationCommandOptionChoice{
+			Name:  item.Name,
+			Value: item.Name,
+		}
+	})
 	return nil
 }
 

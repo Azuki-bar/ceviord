@@ -7,6 +7,7 @@ import (
 	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
 
@@ -209,18 +210,14 @@ func (ds *dictShow) execute(guildID, authorID string) (*discordgo.InteractionRes
 			returnedStr[cur] += (s + "\n")
 		}
 	}
-	emds := make([]*discordgo.MessageEmbed, 0)
-	for i, v := range returnedStr {
-		e := discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("page %d/%d", i+1, len(returnedStr)),
-			Description: v,
+	msgs := lo.Map(returnedStr, func(item string, index int) *discordgo.MessageEmbed {
+		return &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("page %d/%d", index+1, len(returnedStr)),
+			Description: item,
 		}
-		emds = append(emds, &e)
-	}
-	ds.logger.Debug("embed msg", zap.Any("embed messages", emds))
-	return &discordgo.InteractionResponseData{
-		Title:  "dict record",
-		Embeds: emds}, nil
+	})
+	ds.logger.Debug("embed msg", zap.Any("embed messages", msgs))
+	return &discordgo.InteractionResponseData{Title: "dict record", Embeds: msgs}, nil
 }
 
 func fetchRecords(guildID string, limit uint) (*replace.Dicts, error) {
@@ -261,20 +258,14 @@ func (dd *dictDump) execute(guildID, authorID string) (*discordgo.InteractionRes
 			returnedStr[cur] += s + "\n"
 		}
 	}
-	emds := make([]*discordgo.MessageEmbed, 0)
-	for i, v := range returnedStr {
-		e := discordgo.MessageEmbed{
-			Title:       fmt.Sprintf("page %d/%d", i+1, len(returnedStr)),
-			Description: v,
+	msgs := lo.Map(returnedStr, func(item string, index int) *discordgo.MessageEmbed {
+		return &discordgo.MessageEmbed{
+			Title:       fmt.Sprintf("page %d/%d", index+1, len(returnedStr)),
+			Description: item,
 		}
-		emds = append(emds, &e)
-	}
+	})
 
-	return &discordgo.InteractionResponseData{
-		Title:  "dict record",
-		Embeds: emds}, nil
+	return &discordgo.InteractionResponseData{Title: "dict record", Embeds: msgs}, nil
 }
 
-func (dd *dictDump) getOptStr() string {
-	return "全てのレコードを表示します\n"
-}
+func (dd *dictDump) getOptStr() string { return "全てのレコードを表示します\n" }
