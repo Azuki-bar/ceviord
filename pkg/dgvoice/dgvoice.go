@@ -159,7 +159,7 @@ func PlayAudioFile(logger *zap.Logger, v *discordgo.VoiceConnection, filename st
 		return
 	}
 
-	//when stop is sent, kill ffmpeg
+	// when stop is sent, kill ffmpeg
 	go func() {
 		<-stop
 		err := killCmdSafely(run)

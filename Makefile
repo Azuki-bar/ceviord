@@ -1,5 +1,5 @@
 dockerDebug:
-	docker compose -f ./docker-compose.yml -f ./docker-compose.override.yml up
+	docker compose -f ./docker-compose.yml -f ./docker-compose.override.yml up --build
 
 run:
 	go run cmd/main.go
@@ -19,3 +19,5 @@ ttsProto:
 	--go-grpc_opt=Mproto/textToSpeech.proto \
 	-I./ proto/textToSpeech.proto
 
+air: 
+	air -c ./.air.toml

@@ -30,5 +30,5 @@ services:
       - --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 2s
+      timeout: 0.1s
       retries: 20

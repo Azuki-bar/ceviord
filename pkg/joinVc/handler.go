@@ -119,7 +119,7 @@ func VoiceStateUpdateHandler(s *discordgo.Session, vsu *discordgo.VoiceStateUpda
 	}
 	channel, err := ceviord.Cache.Channels.GetChannel(vsu.GuildID)
 	if err != nil {
-		h.logger.Error("get channel failed", zap.Error(err), zap.String("voice status update guildID", vsu.GuildID))
+		h.logger.Info("get channel err, this will no connections to voice Channel", zap.Error(err), zap.String("voice status update guildID", vsu.GuildID))
 		return
 	}
 	err = h.handle(ceviord.RawSpeak, channel)
