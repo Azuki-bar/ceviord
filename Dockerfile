@@ -9,7 +9,7 @@ RUN make build
 
 FROM ubuntu:22.04 as runner
 RUN apt-get update  \
- && \
+  && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     ffmpeg \

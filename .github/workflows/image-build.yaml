@@ -14,17 +14,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      - name: extract commit sha
+        id: commitsha
+        run: echo "SHA_8=${GITHUB_SHA::8}" >> ${GITHUB_ENV}
       - name: Generate build ID
         id: prep
         run: |
           branch=${GITHUB_REF##*/}
           sha=${GITHUB_SHA::8}
           ts=$(date +%s)
-          echo "::set-output name=BUILD_ID::${branch}-${sha}-${ts}"
+          echo BUILD_ID=${branch}-${sha}-${ts} >> ${GITHUB_ENV}
 
       - name: set lower case owner name
-        run: |
-          echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >>${GITHUB_ENV}
+        run: echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
       # These are prerequisites for the docker build step
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -45,4 +47,5 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LC }}:${{ steps.prep.outputs.BUILD_ID }}
           #          platforms: linux/amd64,linux/arm64
           platforms: linux/amd64
-          build-args: "VERSION=${GITHUB_SHA::8}"
+          build-args: |
+            VERSION=${{ steps.commitsha.outputs.SHA_8 }}
