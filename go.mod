@@ -8,12 +8,12 @@ require (
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/gotti/cevigo v0.0.0-20220222162533-6e9cbc73fb49
 	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/samber/lo v1.37.0
 	github.com/vrischmann/envconfig v1.3.0
 	go.uber.org/zap v1.24.0
 	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v2 v2.2.8
-	gopkg.in/yaml.v3 v3.0.1
 	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
 )
 
@@ -27,6 +27,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20220513210258-46612604a0f9 // indirect
+	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/text v0.4.0 // indirect

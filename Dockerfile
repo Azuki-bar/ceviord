@@ -1,5 +1,6 @@
 FROM golang:1.19.4-bullseye as builder
 
+ARG version=snapshot
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
