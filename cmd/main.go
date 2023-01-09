@@ -8,19 +8,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/azuki-bar/ceviord/pkg/ceviord"
 	"github.com/azuki-bar/ceviord/pkg/joinVc"
+	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/azuki-bar/ceviord/pkg/slashCmd"
 	"github.com/azuki-bar/ceviord/pkg/speech/grpc"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/azuki-bar/ceviord/pkg/ceviord"
-	"github.com/azuki-bar/ceviord/pkg/replace"
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-gorp/gorp"
 	"github.com/go-sql-driver/mysql"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/vrischmann/envconfig"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v2"
 )
 
@@ -33,11 +32,11 @@ var (
 type conf struct {
 	param *ceviord.Param
 	auth  *ceviord.Auth
-	log   logConf
+	log   *logConf
 }
 
 type logConf struct {
-	Level *zapcore.Level `yaml:""`
+	Level *zapcore.Level `envConfig:"default=''"`
 }
 
 func getConf() (*conf, error) {
@@ -51,9 +50,18 @@ func getConf() (*conf, error) {
 	}
 
 	var auth ceviord.Auth
-	err = envconfig.Init(&auth)
+	var logConf logConf
+	err = func() error {
+		if err := envconfig.Init(&auth); err != nil {
+			return err
+		}
+		if err := envconfig.Init(&logConf); err != nil {
+			return err
+		}
+		return nil
+	}()
 	if err == nil {
-		return &conf{param: &param, auth: &auth}, nil
+		return &conf{param: &param, auth: &auth, log: &logConf}, nil
 	}
 	log.Print("read config from env vars occurs error", err)
 	authFile, err := os.ReadFile("./auth.yaml")
