@@ -1,11 +1,11 @@
-dockerDebug: build
+dockerDebug:
 	docker compose -f ./docker-compose.yml -f ./docker-compose.override.yml up
 
 run:
 	go run cmd/main.go
 
 build:
-	go build -o ceviord cmd/main.go
+	go build -ldflags '-X main.Version=prod' -o ceviord cmd/main.go
 
 test:
 	go test -v ./...

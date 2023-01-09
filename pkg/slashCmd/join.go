@@ -53,6 +53,7 @@ func (j *join) rawHandle(ctx context.Context, s *discordgo.Session, i *discordgo
 		j.logger.Error("channel joining failed", zap.Error(err), zap.String("guildID", i.GuildID))
 		return err
 	}
+	ceviord.Cache.Logger.Debug("channels cache status", zap.Any("channels", ceviord.Cache.Channels))
 	ceviord.Cache.Channels.AddChannel(
 		ceviord.Channel{PickedChannel: i.ChannelID, VoiceConn: voiceConn},
 		i.GuildID,
