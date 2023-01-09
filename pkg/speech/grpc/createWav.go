@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -26,7 +25,7 @@ type CevioWavGrpc struct {
 func NewTalker(logger *zap.Logger, connConf *ceviord.Conn, param *ceviord.Parameter) (*CevioWavGrpc, func() error) {
 	conn, err := grpc.Dial(connConf.Cevio.EndPoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatal("cevigo endpoint conn failed", zap.String("endpoint", connConf.Cevio.EndPoint))
 	}
 	client := pb.NewTtsClient(conn)
 	c := &CevioWavGrpc{
