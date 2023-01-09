@@ -37,7 +37,7 @@ type conf struct {
 }
 
 type logConf struct {
-	Level *myLogLevel `envconfig:"optional"`
+	Level *myLogLevel `envconfig:"optional,default=info"`
 }
 type myLogLevel zapcore.Level
 
