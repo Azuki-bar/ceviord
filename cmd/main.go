@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -36,7 +37,17 @@ type conf struct {
 }
 
 type logConf struct {
-	Level *zapcore.Level `envconfig:"optional"`
+	Level *myLogLevel `envconfig:"optional"`
+}
+type myLogLevel zapcore.Level
+
+func (l *myLogLevel) Unmarshal(s string) error {
+	zapLevel := zapcore.Level(*l)
+	if err := zapLevel.UnmarshalText([]byte(s)); err != nil {
+		return err
+	}
+	*l = myLogLevel(zapLevel)
+	return nil
 }
 
 func getConf() (*conf, error) {
@@ -55,7 +66,7 @@ func getConf() (*conf, error) {
 		if err := envconfig.Init(&auth); err != nil {
 			return err
 		}
-		if err := envconfig.Init(&logConf); err != nil {
+		if err := envconfig.InitWithOptions(&logConf, envconfig.Options{Prefix: `CEVIORD_LOG`}); err != nil {
 			return err
 		}
 		return nil
@@ -63,7 +74,7 @@ func getConf() (*conf, error) {
 	if err == nil {
 		return &conf{param: &param, auth: &auth, log: &logConf}, nil
 	}
-	log.Print("read config from env vars occurs error", err)
+	log.Printf("read config from env vars occurs error=`%s`", err)
 	authFile, err := os.ReadFile("./auth.yaml")
 	if err != nil {
 		return nil, err
@@ -79,7 +90,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("get config failed err=`%s`", err)
 	}
-	logger := zap.Must(zap.NewDevelopment(zap.IncreaseLevel(conf.log.Level)))
+	logger := zap.Must(zap.NewDevelopment(zap.IncreaseLevel(zapcore.Level(*conf.log.Level))))
 	logger.Info("logger initialize successful!",
 		zap.Stringer("logLevel", logger.Level()),
 		zap.String("ceviord version", Version),
@@ -97,12 +108,11 @@ func main() {
 	dgSess.AddHandler(slashCmd.InteractionHandler)
 	dgSess.AddHandler(joinVc.VoiceStateUpdateHandler)
 	dgSess.AddHandler(ceviord.MessageCreate)
-	// dgSess.Debug = true
+	dgSess.Debug = logger.Level() <= zap.DebugLevel
 	gTalker, closer := grpc.NewTalker(logger, &conf.auth.CeviordConn, &conf.param.Parameters[0])
 	defer func() {
-		err = closer()
-		if err != nil {
-			logger.Panic("grpc connection close failed", zap.Error(err))
+		if err = closer(); err != nil {
+			logger.Fatal("grpc connection close failed", zap.Error(err))
 		}
 	}()
 	ceviord.SetNewTalker(gTalker)
@@ -121,6 +131,7 @@ func main() {
 		db, err = sql.Open("mysql", conf.FormatDSN())
 		if err == nil && db.Ping() == nil {
 			// connection established
+			logger.Info("db connection is estabilished")
 			break
 		}
 		time.Sleep(dbTimeout)
@@ -150,7 +161,7 @@ func main() {
 	if err != nil {
 		logger.Error("slash command generate failed", zap.Error(err), zap.Any("parameters", conf.param.Parameters))
 	}
-	if _, err := slashCmd.NewCmds(dgSess, "", sg.Generate()); err != nil {
+	if _, err := slashCmd.ApplyCmds(logger, dgSess, "", sg.Generate()); err != nil {
 		logger.Fatal("slash command applier failed", zap.Error(err))
 	}
 
@@ -158,12 +169,19 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
+	sem := make(chan struct{}, 4)
+	wg := sync.WaitGroup{}
 	for k, v := range dgSess.VoiceConnections {
 		k := k
 		v := v
+		wg.Add(1)
 		go func() {
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			v.Close()
 			logger.Info("close vc connection", zap.String("guildID", k))
+			wg.Done()
 		}()
 	}
+	wg.Wait()
 }

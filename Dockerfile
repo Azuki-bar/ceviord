@@ -6,7 +6,7 @@ RUN go mod download
 COPY . ./
 RUN make build
 
-FROM ubuntu:jammy-20220428 as runner
+FROM ubuntu:22.04 as runner
 RUN apt-get update  \
  && \
     apt-get install -y --no-install-recommends \
