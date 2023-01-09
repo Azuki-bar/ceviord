@@ -1,10 +1,10 @@
 FROM golang:1.19.4-bullseye as builder
 
-ARG VERSION=snapshot
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . ./
+ARG VERSION=snapshot
 RUN make build
 
 FROM ubuntu:22.04 as runner
