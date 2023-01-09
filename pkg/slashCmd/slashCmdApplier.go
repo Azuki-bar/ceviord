@@ -1,7 +1,6 @@
 package slashCmd
 
 import (
-	"log"
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
@@ -23,20 +22,24 @@ func ApplyCmds(logger *zap.Logger, s *discordgo.Session, guildID string, cmds []
 		wg.Add(1)
 		cmd := cmd
 		i := i
-		go func() error {
+		errC := make(chan error)
+		go func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 			logger.Debug("sem start")
 			ac, err := s.ApplicationCommandCreate(s.State.User.ID, guildID, cmd)
 			if err != nil {
-				log.Printf("cmd: %+v, err: %v", cmd, err)
-				return err
+				logger.Error("apply command failed", zap.Error(err), zap.Any("command", cmd))
+				errC <- err
+				return
 			}
 			logger.Info("slash command apply successful!", zap.Any("command", ac))
 			sc.appliedCmds[i] = ac
 			wg.Done()
-			return nil
 		}()
+		if err := <-errC; err != nil {
+			return nil, err
+		}
 	}
 	wg.Wait()
 	logger.Debug("finish applied")
