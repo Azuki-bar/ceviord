@@ -167,8 +167,11 @@ func ApplySysDict(msg string) string {
 	}
 	return replaceCustomEmoji(msg)
 }
+
+var customEmojiRe = regexp.MustCompile(`<a?:.*:.*>`)
+
 func replaceCustomEmoji(msg string) string {
-	return regexp.MustCompile(`<a?:.*:.*>`).ReplaceAllString(msg, "")
+	return customEmojiRe.ReplaceAllString(msg, "")
 }
 
 type Dicts []Dict
