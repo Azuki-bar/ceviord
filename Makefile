@@ -20,4 +20,4 @@ ttsProto:
 	-I./ proto/textToSpeech.proto
 
 air: 
-	air -c ./.air.toml -d
+	air -c ./.air.toml

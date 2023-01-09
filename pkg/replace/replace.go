@@ -3,7 +3,6 @@ package replace
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -45,19 +44,19 @@ type DbController interface {
 	DumpAtoB(from, to uint) ([]Dict, error)
 }
 
-func initDb(db *sql.DB, dialect gorp.Dialect) (*gorp.DbMap, error) {
+func initDb(logger *zap.Logger, db *sql.DB, dialect gorp.Dialect) (*gorp.DbMap, error) {
 	dbMap := &gorp.DbMap{Db: db, Dialect: dialect}
 	dbMap.AddTableWithName(Dict{}, "dicts").SetKeys(true, "id")
 	err := dbMap.CreateTablesIfNotExists()
 	if err != nil {
-		log.Println(fmt.Errorf("create table failed `%w`", err))
+		logger.Fatal("create table err", zap.Error(err))
 		return nil, err
 	}
 	return dbMap, nil
 }
 func NewReplacer(logger *zap.Logger, db *sql.DB, dialect gorp.Dialect) (*Replacer, error) {
 	rs := &Replacer{logger: logger}
-	dbMap, err := initDb(db, dialect)
+	dbMap, err := initDb(logger, db, dialect)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +91,7 @@ func (rs *Replacer) Add(dict *UserDictInput) error {
 	if len(findRes) > 1 {
 		i, err := rs.gorpDb.Delete(findRes[1:])
 		if i == 0 {
-			log.Printf("want to delete dupricate record but not deleted")
+			rs.logger.Info("want to delete dupricate record but not execute delete")
 		}
 		if err != nil {
 			return fmt.Errorf("deplicate record delete err `%w`", err)
