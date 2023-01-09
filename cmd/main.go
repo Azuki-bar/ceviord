@@ -36,7 +36,7 @@ type conf struct {
 }
 
 type logConf struct {
-	Level *zapcore.Level `envConfig:"optional"`
+	Level *zapcore.Level `envconfig:"optional"`
 }
 
 func getConf() (*conf, error) {
