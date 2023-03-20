@@ -8,7 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/gotti/cevigo v0.0.0-20220222162533-6e9cbc73fb49
 	github.com/mattn/go-sqlite3 v1.14.16
-	github.com/samber/lo v1.37.0
+	github.com/samber/lo v1.38.0
 	github.com/vrischmann/envconfig v1.3.0
 	go.uber.org/zap v1.24.0
 	google.golang.org/grpc v1.53.0
