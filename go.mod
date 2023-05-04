@@ -11,7 +11,7 @@ require (
 	github.com/samber/lo v1.38.1
 	github.com/vrischmann/envconfig v1.3.0
 	go.uber.org/zap v1.24.0
-	google.golang.org/grpc v1.54.0
+	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/yaml.v2 v2.4.0
 	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
@@ -19,7 +19,7 @@ require (
 
 require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/lib/pq v1.10.4 // indirect
 	github.com/poy/onpar v1.1.2 // indirect
@@ -31,5 +31,5 @@ require (
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
-	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
+	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 )
