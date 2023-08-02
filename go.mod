@@ -10,7 +10,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/samber/lo v1.38.1
 	github.com/vrischmann/envconfig v1.3.0
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.25.0
 	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -25,7 +25,7 @@ require (
 	github.com/poy/onpar v1.1.2 // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20220513210258-46612604a0f9 // indirect
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.9.0 // indirect
