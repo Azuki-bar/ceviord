@@ -11,7 +11,7 @@ require (
 	github.com/samber/lo v1.38.1
 	github.com/vrischmann/envconfig v1.3.0
 	go.uber.org/zap v1.26.0
-	google.golang.org/grpc v1.58.1
+	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/yaml.v2 v2.4.0
 	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
