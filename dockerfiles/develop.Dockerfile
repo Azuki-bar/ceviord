@@ -1,4 +1,4 @@
-FROM golang:1.22.0-bullseye
+FROM golang:1.22.1-bullseye
 
 WORKDIR /app
 RUN apt-get update  \
