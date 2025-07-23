@@ -1,11 +1,13 @@
 module github.com/azuki-bar/ceviord
 
-go 1.19
+go 1.21.0
+
+toolchain go1.24.5
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/go-gorp/gorp v2.2.0+incompatible
-	github.com/go-sql-driver/mysql v1.8.1
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/gotti/cevigo v0.0.0-20220222162533-6e9cbc73fb49
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/samber/lo v1.47.0
