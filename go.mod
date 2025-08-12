@@ -1,6 +1,8 @@
 module github.com/azuki-bar/ceviord
 
-go 1.19
+go 1.22
+
+toolchain go1.24.6
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
@@ -12,7 +14,7 @@ require (
 	github.com/vrischmann/envconfig v1.4.1
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.63.2
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.36.7
 	gopkg.in/yaml.v2 v2.4.0
 	layeh.com/gopus v0.0.0-20210501142526-1ee02d434e32
 )
