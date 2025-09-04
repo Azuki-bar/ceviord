@@ -7,7 +7,7 @@ require (
 	github.com/go-gorp/gorp v2.2.0+incompatible
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gotti/cevigo v0.0.0-20220222162533-6e9cbc73fb49
-	github.com/mattn/go-sqlite3 v1.14.31
+	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/samber/lo v1.51.0
 	github.com/vrischmann/envconfig v1.4.1
 	go.uber.org/zap v1.27.0
